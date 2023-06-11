@@ -1,0 +1,104 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'top.niunaijun.blackobfuscator'
+}
+
+android {
+    signingConfigs {
+
+    }
+    namespace 'com.alphi.airobot'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.alphi.airobot"
+        minSdk 26
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    buildFeatures {
+        compose true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.4.3'      // compose version
+    }
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+def markwon_version = '4.6.2'
+
+// 加入混淆配置
+BlackObfuscator {
+    // 是否启用
+    enabled false
+    // 混淆深度
+    depth 2
+    // 需要混淆的包或者类(匹配前面一段)
+    obfClass = ["com.example.airobot.model", "com.example.airobot.model.utils"]
+    // blackClass中的包或者类不会进行混淆(匹配前面一段)
+//    blackClass = ["com.android"]
+}
+
+
+dependencies {
+    implementation "io.noties.markwon:core:$markwon_version"
+    implementation "io.noties.markwon:ext-strikethrough:$markwon_version"
+    implementation "io.noties.markwon:ext-tables:$markwon_version"
+    implementation "io.noties.markwon:html:$markwon_version"
+    implementation "io.noties.markwon:linkify:$markwon_version"
+    implementation "io.noties.markwon:image-coil:$markwon_version"
+
+
+    implementation 'me.saket:better-link-movement-method:2.2.0' // 解决链接点击与文字选择冲突问题
+
+    implementation 'io.coil-kt:coil-compose:2.4.0'
+    implementation 'io.coil-kt:coil:2.4.0'
+    implementation 'io.coil-kt:coil-base:2.4.0'
+    implementation 'com.unfbx:chatgpt-java:1.0.13'
+    implementation 'com.squareup.okhttp3:okhttp-sse:4.9.3'
+    implementation 'com.alibaba:fastjson:1.2.78'
+    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.0')
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.1'
+    implementation 'androidx.activity:activity-compose:1.7.2'
+    implementation platform('androidx.compose:compose-bom:2023.05.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation platform('androidx.compose:compose-bom:2022.10.00')
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.05.01')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    androidTestImplementation platform('androidx.compose:compose-bom:2022.10.00')
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+}

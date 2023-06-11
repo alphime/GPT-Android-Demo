@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Chat GPT 机器人</string>
+    <string name="title_activity_crash_report">CrashReportActivity</string>
+</resources>
