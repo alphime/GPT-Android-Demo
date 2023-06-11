@@ -465,7 +465,7 @@ fun ModifyApiDialog(
                         if (apiData != null) {
                             dbHelper.deleteOne(apiData)
                             mOpenApiList.remove(apiData)
-                            if (mOpenApiList.size - 1 > mSelectApiIndex) {
+                            if (mOpenApiList.size - 1 < mSelectApiIndex) {
                                 mSelectApiIndex = 0
                             }
                         }
