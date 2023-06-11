@@ -64,12 +64,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         OpenAiModel.initProperty(this)
         ChatBoxView.createOneClock()
-        val directory =
-            File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "ApkExport"
-            )
-        Log.d("TAG", "onCreate: ${directory.listFiles()!!.filter { it.isFile }}")
         setContent {
             MyApplicationTheme {
                 // A surface container using the 'background' color from the theme

@@ -196,7 +196,7 @@ class OpenAiModel {
             val chatCompletion =
                 ChatCompletion.builder().messages(mChatContextMessages).model(AiModel.getName())
                     .build()
-            client!!.streamChatCompletion(chatCompletion, eventSourceListener)
+            client?.streamChatCompletion(chatCompletion, eventSourceListener)
         }
 
 

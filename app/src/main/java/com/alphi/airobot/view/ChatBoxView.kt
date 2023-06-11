@@ -139,8 +139,8 @@ fun InitChatBoxView(list: MutableList<MsgData>) {
                     Row(
                         Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
                     ) {
-                        var textValue = tempNewMsgText.value!!
-                            .replace("|\n", "|\b  \n")
+                        var textValue = tempNewMsgText.value
+                            ?.replace("|\n", "|\b  \n") ?: ""
                         if (isMarkDownImage(textValue)) {
                             textValue = textValue.replace("](", "]\b(")
                         }
