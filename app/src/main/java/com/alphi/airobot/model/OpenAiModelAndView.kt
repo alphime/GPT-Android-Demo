@@ -17,13 +17,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -41,6 +40,7 @@ import com.unfbx.chatgpt.entity.chat.ChatCompletion
 import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse
 import com.unfbx.chatgpt.entity.chat.Message
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
@@ -182,7 +182,16 @@ class OpenAiModel {
                         strBuilder.append(resultBody)
                         strBuilder.toString()
                     } else {
-                        "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
+                        val testBuilder = Request.Builder().url("https://www.google.cn/generate_204").build()
+                        val build =
+                            OkHttpClient.Builder().connectTimeout(200, TimeUnit.MILLISECONDS)
+                                .build()
+                        val responseTest = build.newCall(testBuilder).execute()
+                        if (responseTest.code == 204) {
+                            "连接超时，API配置存在问题，请检查配置"
+                        } else {
+                            "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
+                        }
                     }
                     mData = MsgData(content, isMe = false, isErr = true)
                     list.add(mData)
@@ -208,7 +217,7 @@ class OpenAiModel {
         fun refreshClient() {
             client = OpenAiStreamClient.builder()
                 .okHttpClient(OkHttpClient.Builder().apply {
-                    connectTimeout(500, TimeUnit.MILLISECONDS)
+                    connectTimeout(800, TimeUnit.MILLISECONDS)
                 }.build())
                 .apiKey(
                     listOf(
@@ -284,14 +293,6 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                         var spendAvailable by remember {
                             mutableStateOf("查询中")
                         }
-                        Thread {
-                            spendAvailable = try {
-                                "￥ ${OpenAiModel.client?.subscription()?.hardLimitUsd}"
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                "查询失败"
-                            }
-                        }.start()
                         Box(
                             Modifier
                                 .fillMaxWidth()
@@ -325,6 +326,18 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                                 )
                             }
                             Text(text = spendAvailable, Modifier.align(Alignment.CenterEnd))
+                        }
+
+                        // 修复请求反应太快了，Compose界面还没加载完成出现的异常
+                        LaunchedEffect(Unit) {
+                            Thread {
+                                spendAvailable = try {
+                                    "￥ ${OpenAiModel.client?.subscription()?.hardLimitUsd}"
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    "查询失败"
+                                }
+                            }.start()
                         }
                     }
     //                TextField(value = apiValue, label = {
@@ -545,6 +558,10 @@ fun errCodeToString(code: Int): String {
     return when (code) {
         500 -> {
             "系统繁忙，服务器在处理您的请求时出错"
+        }
+
+        404 -> {
+            "API HOST 链接配置有误，请检查配置！"
         }
 
         403 -> {

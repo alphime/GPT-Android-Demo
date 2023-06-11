@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -57,17 +58,21 @@ fun Greeting(msg: String) {
     val manager = LocalClipboardManager.current
     val context = LocalContext.current
     Box (Modifier.padding(8.dp, 2.dp)) {
-        Text(
-            text = "程序出现异常！以下是报错信息:\n$msg",
-            color = Color.Red,
-            modifier = Modifier
-                .verticalScroll(state = rememberScrollState())
-                .horizontalScroll(state = rememberScrollState()),
-        )
+        SelectionContainer {
+            Text(
+                text = "程序出现异常！以下是报错信息:\n$msg",
+                color = Color.Red,
+                modifier = Modifier
+                    .verticalScroll(state = rememberScrollState())
+                    .horizontalScroll(state = rememberScrollState()),
+            )
+        }
         Button(onClick = {
             manager.setText(AnnotatedString(msg))
             Toast.makeText(context, "复制报错信息成功！", Toast.LENGTH_SHORT).show()
-        }, modifier = Modifier.padding(10.dp, 70.dp).align(Alignment.BottomEnd)) {
+        }, modifier = Modifier
+            .padding(10.dp, 70.dp)
+            .align(Alignment.BottomEnd)) {
             Text(text = "复制")
         }
     }
