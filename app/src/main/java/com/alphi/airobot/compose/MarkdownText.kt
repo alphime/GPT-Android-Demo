@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Paint
 import android.graphics.Rect
 import android.net.Uri
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.TextView
@@ -25,7 +24,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.graphics.and
 import coil.ImageLoader
 import coil.util.DebugLogger
 import io.noties.markwon.AbstractMarkwonPlugin
@@ -125,6 +123,8 @@ private fun createTextView(
         setMaxLines(maxLines)
         setTextSize(TypedValue.COMPLEX_UNIT_DIP, mergedStyle.fontSize.value)
         setTextIsSelectable(isSelectable)
+        letterSpacing = 0.02f
+        setLineSpacing(0f, 1.14f)
         movementMethod =
             BetterLinkMovementMethod.getInstance()        // 解决link点击与textSelectable冲突问题
         onClick?.let { setOnClickListener { onClick() } }

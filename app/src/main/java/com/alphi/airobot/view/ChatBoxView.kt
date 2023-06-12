@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.DisableSelection
@@ -102,14 +101,14 @@ fun InitChatBoxView(list: MutableList<MsgData>) {
                 Row(
                     Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
                 ) {
-                    NewMsgContentView(text = chatOneClockText)
+                    NewMsgContentView(text = chatOneClockText, maxWidth = 230.dp)
                 }
             }
             // 聊天列表     不建议forEach嵌套item，否则滑动会出现问题
             items(list) {v ->
                 val minWidth =
                     if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(v.text, onlyImage = true)) 200.dp
-                    else 0.dp
+                    else MsgContentViewDefaultParam.minWidth
                 Row(
                     Modifier.fillMaxWidth(), horizontalArrangement = if (v.isMe) Arrangement.End
                     else Arrangement.Start
@@ -223,6 +222,12 @@ val msgBackgroundBrush = Brush.linearGradient(
     )
 )
 
+class MsgContentViewDefaultParam {
+    companion object {
+        val minWidth: Dp = 20.dp
+        val maxWidth: Dp = 252.dp
+    }
+}
 
 @Composable
 private fun NewMsgContentView(
@@ -231,7 +236,8 @@ private fun NewMsgContentView(
     enableMarkDownText: Boolean = false,
     textIsSelectable: Boolean = false,
     isMe:Boolean? = null,
-    minWidth: Dp = 0.dp
+    minWidth: Dp = MsgContentViewDefaultParam.minWidth,
+    maxWidth: Dp = MsgContentViewDefaultParam.maxWidth
 ) {
     if (enableMarkDownText) {
         MarkdownText(markdown = text,
@@ -251,7 +257,7 @@ private fun NewMsgContentView(
                 }
                 .padding(10.dp)
                 .sizeIn(
-                    maxWidth = 230.dp, minWidth = minWidth
+                    maxWidth = maxWidth, minWidth = minWidth
                 ))
     } else {
         Text(text = text, modifier = Modifier
@@ -267,7 +273,7 @@ private fun NewMsgContentView(
                 }
             }
             .padding(10.dp)
-            .sizeIn(maxWidth = 230.dp))
+            .sizeIn(maxWidth = maxWidth))
     }
 }
 
