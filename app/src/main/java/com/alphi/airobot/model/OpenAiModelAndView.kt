@@ -418,6 +418,8 @@ fun ModifyApiDialog(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        if (!hostTempValue.endsWith('/'))
+                            hostTempValue += '/'
                         if (apiData != null) {
                             apiData.name = nameTempValue
                             apiData.host = hostTempValue
