@@ -1,6 +1,5 @@
 package com.alphi.airobot.view
 
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,7 +28,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.model.OpenAiModel
-import kotlinx.coroutines.launch
 
 @OptIn(
     ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class
@@ -45,10 +43,7 @@ fun InitInputView(list: MutableList<MsgData>) {
     val onSendClick = fun() {
         if (text.isBlank())
             return
-        scope.launch {
-            mSendButtonEnable = false
-            text = ""
-        }
+        mSendButtonEnable = false
         val data = MsgData(text, isMe = true, selectable = true)
         list.add(data)
         OpenAiModel.launchAiQuestion(text, list, closeListener = {
@@ -57,6 +52,7 @@ fun InitInputView(list: MutableList<MsgData>) {
         }, eventListener = {
             scrollBottomEvent(scope, needOnBottom = true)
         })
+        text = ""
         keyboardController?.hide()
     }
 

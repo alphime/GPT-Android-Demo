@@ -102,6 +102,7 @@ class OpenAiModel {
                 val mData = MsgData("注意：使用GPT前，需设置API才能使用！", isMe = false)
                 list.add(mData)
                 closeListener(mData)
+                return
             }
 
             //聊天模型：gpt-3.5
