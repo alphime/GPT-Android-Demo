@@ -32,7 +32,6 @@ import com.alphi.airobot.database.ChatGptApiDBHelper
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.entity.OpenAiApi
 import com.alphi.airobot.utils.AdVanceNestCallback
-import com.alphi.airobot.utils.EncryptionUtil
 import com.alphi.airobot.view.AboutAuthorText
 import com.alphi.airobot.view.tempNewMsgText
 import com.unfbx.chatgpt.OpenAiStreamClient
@@ -572,10 +571,6 @@ fun errCodeToString(code: Int): String {
             "系统繁忙，服务器在处理您的请求时出错"
         }
 
-        404 -> {
-            "API HOST 链接配置有误，请检查配置！"
-        }
-
         403 -> {
             "限制只能使用GPT-3.5-turbo的相关版本"
         }
@@ -600,12 +595,5 @@ fun errCodeToString(code: Int): String {
             "未知错误"
         }
     }
-}
-
-
-fun decryptCode(str: String): String {
-    if (str.isBlank())
-        return str
-    return EncryptionUtil.decrypt(str, key)
 }
 
