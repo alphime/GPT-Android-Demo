@@ -48,11 +48,11 @@ import java.util.concurrent.TimeUnit
 
 
 private const val defalutOpenApiHost = "https://api.chatanywhere.com.cn/"
-private val defaultKey = null
+private val defaultKey: String? = null
 
 //    "sk-GnMR9NrWFYn1kKSeEih9U71ExCfP3PX5LKsn3jQYNPp1vG33"
-private lateinit var currentApiHost: String
-private var currentKey: String = ""
+private var currentApiHost: String? = null
+private var currentKey: String? = null
 private lateinit var preferences: SharedPreferences
 internal lateinit var AiModel: ChatCompletion.Model
 private val key = "83hufy77ysde6?=nkxcvt2"
@@ -95,15 +95,15 @@ class OpenAiModel {
             closeListener: (MsgData) -> Unit,
             eventListener: (() -> Unit?)? = null
         ) {
-            if (currentKey.isBlank() && defaultKey.isNullOrBlank()) {
-                val mData = MsgData("注意：使用GPT前，需设置Key才能使用！", isMe = false)
-                list.add(mData)
-                closeListener(mData)
-                return
-            }
-
             if (client == null)
                 refreshClient()
+
+            if (client == null) {
+                val mData = MsgData("注意：使用GPT前，需设置API才能使用！", isMe = false)
+                list.add(mData)
+                closeListener(mData)
+            }
+
             //聊天模型：gpt-3.5
             //聊天模型：gpt-3.5
             val eventSourceListener = object : EventSourceListener() {
@@ -215,18 +215,22 @@ class OpenAiModel {
 
 
         fun refreshClient() {
+            val key = if (!currentKey.isNullOrBlank()) currentKey else defaultKey
+            val apiHost = if (!currentApiHost.isNullOrBlank()) currentApiHost else defalutOpenApiHost
+            if (key == null || apiHost == null) {
+                client = null
+                return
+            }
             client = OpenAiStreamClient.builder()
                 .okHttpClient(OkHttpClient.Builder().apply {
                     connectTimeout(800, TimeUnit.MILLISECONDS)
                 }.build())
                 .apiKey(
-                    listOf(
-                        currentKey.ifEmpty { defaultKey }
-                    )
+                    listOf(key)
                 ) //自定义key的获取策略：默认KeyRandomStrategy
                 //.keyStrategy(new KeyRandomStrategy())
                 // 自己做了代理就传代理地址，没有可不不传
-                .apiHost(currentApiHost)
+                .apiHost(apiHost)
                 .build()
         }
 
@@ -548,9 +552,14 @@ fun OpenModelSettingDialog(
 
 
 private fun refreshApiConfig() {
-    val openAiApi = mOpenApiList[mSelectApiIndex.coerceAtMost(mOpenApiList.size - 1)]
-    currentKey = openAiApi.sk
-    currentApiHost = openAiApi.host
+    if (mOpenApiList.size > 0) {
+        val openAiApi = mOpenApiList[mSelectApiIndex.coerceAtMost(mOpenApiList.size - 1)]
+        currentKey = openAiApi.sk
+        currentApiHost = openAiApi.host
+    } else {
+        currentKey = null
+        currentApiHost = null
+    }
 }
 
 
