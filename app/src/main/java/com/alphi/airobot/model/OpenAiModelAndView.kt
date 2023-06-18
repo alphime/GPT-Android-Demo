@@ -46,7 +46,7 @@ import okhttp3.sse.EventSourceListener
 import java.util.concurrent.TimeUnit
 
 
-private const val defalutOpenApiHost = "https://api.chatanywhere.com.cn/"
+private const val defalutOpenApiHost = "https://api.openai.com/"
 private val defaultKey: String? = null
 
 //    "sk-GnMR9NrWFYn1kKSeEih9U71ExCfP3PX5LKsn3jQYNPp1vG33"
@@ -54,7 +54,6 @@ private var currentApiHost: String? = null
 private var currentKey: String? = null
 private lateinit var preferences: SharedPreferences
 internal lateinit var AiModel: ChatCompletion.Model
-private val key = "83hufy77ysde6?=nkxcvt2"
 private val mChatContextMessages: MutableList<Message> = ArrayList()
 
 private lateinit var dbHelper: ChatGptApiDBHelper
@@ -387,7 +386,7 @@ fun ModifyApiDialog(
         }
         var hostTempValue by remember {
             mutableStateOf(
-                apiData?.host ?: ""
+                apiData?.host ?: defalutOpenApiHost
             )
         }
         var skTempValue by remember { mutableStateOf(apiData?.sk ?: "") }

@@ -1,5 +1,10 @@
 package com.alphi.airobot.view
 
+import android.annotation.SuppressLint
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -8,13 +13,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,12 +33,14 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.model.OpenAiModel
+import kotlinx.coroutines.delay
 
+@SuppressLint("RememberReturnType")
 @OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class
+    ExperimentalComposeUiApi::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class
 )
 @Composable
-fun InitInputView(list: MutableList<MsgData>) {
+fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     var mSendButtonEnable by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -56,30 +63,50 @@ fun InitInputView(list: MutableList<MsgData>) {
         keyboardController?.hide()
     }
 
-    Row(Modifier.padding(6.dp)) {
+    Row(
+        Modifier
+            .padding(6.dp)
+            .then(modifier)
+    ) {
         TextField(
             value = text,
             onValueChange = { text = it },
             Modifier
                 .padding(6.dp)
                 .weight(1f),
-            shape = RoundedCornerShape(50),
-            colors = TextFieldDefaults.textFieldColors(
+            interactionSource = remember { MutableInteractionSource() }
+                .also { interactionSource ->
+                    LaunchedEffect(interactionSource) {
+                        interactionSource.interactions.collect {
+                            if (it is PressInteraction.Release) {
+                                // works like onClick
+                                if (text.isEmpty()) {
+                                    delay(100)
+                                    scrollBottomEvent()
+                                }
+                            }
+                        }
+                    }
+                },
+            shape = RoundedCornerShape(size = 80F),
+            colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent
+                disabledIndicatorColor = Color.Transparent,
             ),
             placeholder = {
                 Text(text = "有什么问题尽管问我...")
             },
-
+            maxLines = 5,
             trailingIcon = {
                 Row {
-                    IconButton(     //clear
-                        onClick = {
-                            text = ""
-                        }) {
-                        Icon(Icons.Default.Clear, contentDescription = "清除文字")
+                    if (text.isNotEmpty()) {
+                        IconButton(     //clear
+                            onClick = {
+                                text = ""
+                            }) {
+                            Icon(Icons.Default.Clear, contentDescription = "清除文字")
+                        }
                     }
                     IconButton(     // send
                         onClick = onSendClick,

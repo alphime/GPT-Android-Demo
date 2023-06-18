@@ -3,6 +3,7 @@ package com.alphi.airobot.view
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,8 +72,9 @@ private lateinit var ChatListState: LazyListState
 internal lateinit var tempNewMsgText: MutableState<String?>
 
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun InitChatBoxView(list: MutableList<MsgData>) {
+fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     ChatListState = rememberLazyListState()
     tempNewMsgText = remember { mutableStateOf(null) }
     var chatOneClockText by remember { mutableStateOf("") }
@@ -94,7 +96,7 @@ fun InitChatBoxView(list: MutableList<MsgData>) {
 //        list.add(MsgData("![猫咪图片](https://cdn.pixabay.com/photo/2017/02/20/18/03/cat-2083492_1280.jpg)"))
     }
 
-    LazyColumn(state = ChatListState) {
+    LazyColumn(state = ChatListState, modifier = modifier) {
         try {
             // 时钟
             item {
@@ -105,9 +107,13 @@ fun InitChatBoxView(list: MutableList<MsgData>) {
                 }
             }
             // 聊天列表     不建议forEach嵌套item，否则滑动会出现问题
-            items(list) {v ->
+            items(list) { v ->
                 val minWidth =
-                    if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(v.text, onlyImage = true)) 200.dp
+                    if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(
+                            v.text,
+                            onlyImage = true
+                        )
+                    ) 200.dp
                     else MsgContentViewDefaultParam.minWidth
                 Row(
                     Modifier.fillMaxWidth(), horizontalArrangement = if (v.isMe) Arrangement.End
@@ -126,7 +132,10 @@ fun InitChatBoxView(list: MutableList<MsgData>) {
                     )
                     else DisableSelection(content = {
                         NewMsgContentView(
-                            text = v.text, enableMarkDownText = !v.isMe, minWidth = minWidth, isMe = v.isMe
+                            text = v.text,
+                            enableMarkDownText = !v.isMe,
+                            minWidth = minWidth,
+                            isMe = v.isMe
                         )
                     })
                 }
@@ -210,9 +219,13 @@ fun scrollBottomEvent(
 ) {
     if (!ChatListState.canScrollForward || !needOnBottom) {
         scope.launch {
-            ChatListState.animateScrollToItem(Int.MAX_VALUE)
+            scrollBottomEvent()
         }
     }
+}
+
+internal suspend fun scrollBottomEvent() {
+    ChatListState.animateScrollToItem(Int.MAX_VALUE)
 }
 
 
@@ -235,7 +248,7 @@ private fun NewMsgContentView(
     marginValues: PaddingValues = PaddingValues(14.dp, 6.dp),
     enableMarkDownText: Boolean = false,
     textIsSelectable: Boolean = false,
-    isMe:Boolean? = null,
+    isMe: Boolean? = null,
     minWidth: Dp = MsgContentViewDefaultParam.minWidth,
     maxWidth: Dp = MsgContentViewDefaultParam.maxWidth
 ) {
@@ -284,7 +297,12 @@ private fun NewMsgContentView(
  * @param cornerRadius2 次圆角
  * @param isLeft 真 左上； 假 右下； 空 四个角都用 cornerRadius
  */
-fun msgRoundRectCreate(size: Size, cornerRadius: Float, cornerRadius2: Float = 2F, isLeft: Boolean? = null): RoundRect {
+fun msgRoundRectCreate(
+    size: Size,
+    cornerRadius: Float,
+    cornerRadius2: Float = 2F,
+    isLeft: Boolean? = null
+): RoundRect {
     return RoundRect(
         rect = Rect(
             offset = Offset(0f, 0f),

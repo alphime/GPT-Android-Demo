@@ -1,13 +1,10 @@
 package com.alphi.airobot
 
 import android.os.Bundle
-import android.os.Environment
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -57,7 +54,6 @@ import com.alphi.airobot.view.InitChatBoxView
 import com.alphi.airobot.view.InitInputView
 import com.alphi.airobot.view.msgBackgroundBrush
 import kotlinx.coroutines.launch
-import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,13 +120,7 @@ fun FuncView() {
             },
             colors = appBarColors()
         )
-        Box(
-            Modifier
-                .weight(1F)
-                .fillMaxWidth()
-        ) {
-            InitChatBoxView(mList)
-        }
+        InitChatBoxView(mList, modifier = Modifier.weight(1f))
         InitInputView(mList)
     }
     OpenSettingsDialog(showSettingsDialogState)
