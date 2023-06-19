@@ -36,6 +36,8 @@ class CrashReportActivity : ComponentActivity() {
         internal const val ExtraMsgKey = "crash-msg"
     }
 
+    private val mHandler = Handler(Looper.getMainLooper())
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val msg = intent.getStringExtra(ExtraMsgKey)
@@ -58,10 +60,11 @@ class CrashReportActivity : ComponentActivity() {
 
     override fun onBackPressed() {
         if (mIsFinish) {
+            mHandler.removeCallbacksAndMessages(null)
             finish()
         } else {
             mIsFinish = true
-            Handler(Looper.getMainLooper()).postDelayed({
+            mHandler.postDelayed({
                 mIsFinish = false
             }, 3000)
         }

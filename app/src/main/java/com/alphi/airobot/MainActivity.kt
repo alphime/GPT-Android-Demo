@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
         val chatGptApiDBHelper = ChatGptApiDBHelper(this)
         chatGptApiDBHelper.writableDatabase
         CrashHandle.getInstance(this)
+        throw RuntimeException()
     }
 
     override fun onDestroy() {
