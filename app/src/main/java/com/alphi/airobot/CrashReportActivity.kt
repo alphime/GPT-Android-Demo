@@ -1,6 +1,8 @@
 package com.alphi.airobot
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,9 +30,12 @@ import com.alphi.airobot.ui.theme.MyApplicationTheme
 
 
 class CrashReportActivity : ComponentActivity() {
+    private var mIsFinish = false;
+
     companion object {
         internal const val ExtraMsgKey = "crash-msg"
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val msg = intent.getStringExtra(ExtraMsgKey)
@@ -50,6 +55,17 @@ class CrashReportActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onBackPressed() {
+        if (mIsFinish) {
+            finish()
+        } else {
+            mIsFinish = true
+            Handler(Looper.getMainLooper()).postDelayed({
+                mIsFinish = false
+            }, 3000)
+        }
+    }
 }
 
 
@@ -57,7 +73,7 @@ class CrashReportActivity : ComponentActivity() {
 fun Greeting(msg: String) {
     val manager = LocalClipboardManager.current
     val context = LocalContext.current
-    Box (Modifier.padding(8.dp, 2.dp)) {
+    Box(Modifier.padding(8.dp, 2.dp)) {
         SelectionContainer {
             Text(
                 text = "程序出现异常！以下是报错信息:\n$msg",
@@ -67,12 +83,14 @@ fun Greeting(msg: String) {
                     .horizontalScroll(state = rememberScrollState()),
             )
         }
-        Button(onClick = {
-            manager.setText(AnnotatedString(msg))
-            Toast.makeText(context, "复制报错信息成功！", Toast.LENGTH_SHORT).show()
-        }, modifier = Modifier
-            .padding(10.dp, 70.dp)
-            .align(Alignment.BottomEnd)) {
+        Button(
+            onClick = {
+                manager.setText(AnnotatedString(msg))
+                Toast.makeText(context, "复制报错信息成功！", Toast.LENGTH_SHORT).show()
+            }, modifier = Modifier
+                .padding(10.dp, 70.dp)
+                .align(Alignment.BottomEnd)
+        ) {
             Text(text = "复制")
         }
     }

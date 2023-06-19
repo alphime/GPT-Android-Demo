@@ -15,17 +15,23 @@ class CrashHandle private constructor(private val content: Context? = null) :
     private val mDefaultExceptionHandler: UncaughtExceptionHandler =
         Thread.getDefaultUncaughtExceptionHandler()!!
     private var listener: ((crashInfo: String) -> Unit)? = null
+
     override fun uncaughtException(t: Thread, e: Throwable) {
+        val isMainThread = Looper.getMainLooper().thread == t
         if (content != null) {
             val crashInfo = parseCrashInfo(e)
             listener?.invoke(crashInfo)
             val intent = Intent(content, CrashReportActivity::class.java)
             intent.putExtra(CrashReportActivity.ExtraMsgKey, crashInfo)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            if (isMainThread) {
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            } else {
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
             content.startActivity(intent)
         }
-        // 防止子线程异常闪退
-        if (Looper.myLooper()?.isCurrentThread == true) {
+        // 确保主线程异常退出！！！
+        if (isMainThread || content == null) {
             mDefaultExceptionHandler.uncaughtException(t, e)
         }
     }
