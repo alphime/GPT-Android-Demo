@@ -398,17 +398,17 @@ fun ModifyApiDialog(
                     TextField(value = nameTempValue, label = {
                         Text(text = "名称")
                     }, onValueChange = {
-                        nameTempValue = it
+                        nameTempValue = it.trim()
                     }, singleLine = true)
                     TextField(value = hostTempValue, label = {
                         Text(text = "Open Host")
                     }, onValueChange = {
-                        hostTempValue = it
+                        hostTempValue = it.trim()
                     }, singleLine = true)
                     TextField(value = skTempValue, label = {
                         Text(text = "Api Key")
                     }, onValueChange = {
-                        skTempValue = it
+                        skTempValue = it.trim()
                     }, singleLine = true
                     )
                 }

@@ -1,5 +1,6 @@
 package com.alphi.airobot.view
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -142,11 +143,13 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
 
             }
             // 新字节流消息
-            if (tempNewMsgText.value != null) {
-                item {
+            item {
+                if (tempNewMsgText.value != null) {
+                    Log.d("TAG-View", "FuncView: 03-2t")
                     Row(
                         Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
                     ) {
+                        Log.d("TAG-View", "FuncView: 03-2")
                         var textValue = tempNewMsgText.value
                             ?.replace("|\n", "|\b  \n") ?: ""
                         if (isMarkDownImage(textValue)) {
