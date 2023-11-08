@@ -1,6 +1,9 @@
 package com.alphi.airobot.view
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -41,10 +44,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.alphi.airobot.compose.MarkdownText
+import com.alphi.airobot.compose.MarkdownView
+import com.alphi.airobot.compose.MarkdownViewLinkType
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.model.OpenAiModel
 import kotlinx.coroutines.CoroutineScope
@@ -256,7 +261,8 @@ private fun NewMsgContentView(
     maxWidth: Dp = MsgContentViewDefaultParam.maxWidth
 ) {
     if (enableMarkDownText) {
-        MarkdownText(markdown = text,
+        val ctx = LocalContext.current
+        MarkdownView(content = text,
             fontSize = 16.sp,
             textIsSelectable = textIsSelectable,
             modifier = Modifier
@@ -274,7 +280,14 @@ private fun NewMsgContentView(
                 .padding(10.dp)
                 .sizeIn(
                     maxWidth = maxWidth, minWidth = minWidth
-                ))
+                )) {link, type ->
+            if (type == MarkdownViewLinkType.WebLink) {
+                Toast.makeText(ctx, link, Toast.LENGTH_SHORT).show()
+                val intent = Intent()
+                intent.data = Uri.parse(link)
+                ctx.startActivity(intent)
+            }
+        }
     } else {
         Text(text = text, modifier = Modifier
             .padding(marginValues)   // margin

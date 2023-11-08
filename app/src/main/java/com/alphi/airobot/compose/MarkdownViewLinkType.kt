@@ -39,9 +39,13 @@ import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
 import me.saket.bettermovementmethod.BetterLinkMovementMethod
 
+enum class MarkdownViewLinkType {
+    Image, WebLink;
+}
+
 @Composable
-fun MarkdownText(
-    markdown: String,
+fun MarkdownView(
+    content: String,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
@@ -51,20 +55,25 @@ fun MarkdownText(
     @FontRes fontResource: Int? = null,
     style: TextStyle = LocalTextStyle.current,
     @IdRes viewId: Int? = null,
-    onClick: (() -> Unit)? = null,
     // this option will disable all clicks on links, inside the markdown text
     // it also enable the parent view to receive the click event
     imageLoader: ImageLoader? = null,
-    onTextLayout: ((numLines: Int) -> Unit)? = null
+    onTextLayout: ((numLines: Int) -> Unit)? = null,
+    onLinkClickListener: ((link: String, type: MarkdownViewLinkType) -> Unit)? = null
 ) {
     val defaultColor: Color = LocalContentColor.current.copy()
     val context: Context = LocalContext.current
     val markdownRender: Markwon =
         createMarkdownRender(context, imageLoader, onLinkClicked = {
+//            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             if (it.contains("://")) {
-                val intent = Intent()
-                intent.data = Uri.parse(it)
-                context.startActivity(intent)
+                if (onLinkClickListener != null)
+                    onLinkClickListener(it, MarkdownViewLinkType.WebLink)
+                else {
+                    val intent = Intent()
+                    intent.data = Uri.parse(it)
+                    context.startActivity(intent)
+                }
             }
         })
     AndroidView(
@@ -80,12 +89,12 @@ fun MarkdownText(
                 style = style,
                 textAlign = textAlign,
                 viewId = viewId,
-                onClick = onClick,
+                onClick = null,
                 isSelectable = textIsSelectable,
             )
         },
         update = { textView ->
-            markdownRender.setMarkdown(textView, markdown)
+            markdownRender.setMarkdown(textView, content)
             if (onTextLayout != null) {
                 textView.post {
                     onTextLayout(textView.lineCount)
