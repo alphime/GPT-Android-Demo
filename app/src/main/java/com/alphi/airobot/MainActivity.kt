@@ -45,13 +45,13 @@ import com.alphi.airobot.database.ChatGptApiDBHelper
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.model.AiModel
 import com.alphi.airobot.model.OpenAiModel
-import com.alphi.airobot.model.OpenModelSettingDialog
-import com.alphi.airobot.model.OpenSettingsDialog
 import com.alphi.airobot.ui.theme.MyApplicationTheme
 import com.alphi.airobot.utils.CrashHandle
 import com.alphi.airobot.view.ChatBoxView
 import com.alphi.airobot.view.InitChatBoxView
 import com.alphi.airobot.view.InitInputView
+import com.alphi.airobot.view.OpenModelSettingDialog
+import com.alphi.airobot.view.OpenSettingsDialog
 import com.alphi.airobot.view.msgBackgroundBrush
 import kotlinx.coroutines.launch
 
