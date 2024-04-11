@@ -76,6 +76,12 @@ class OpenAiModel {
                 val model = preferences.getString("model", null)
                 if (!model.isNullOrBlank()) {
                     try {
+                        for (m in BaseChatCompletion.Model.values()) {
+                            if (m.getName() == model) {
+                                AiModel = m
+                                break
+                            }
+                        }
                         AiModel = BaseChatCompletion.Model.valueOf(model)
                     } catch (e: Exception) {
                         Log.e("initProperty", "AiModel: load properties failure.", e)
