@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,6 +37,8 @@ import com.alphi.airobot.utils.AdVanceNestCallback
 import com.alphi.airobot.view.AboutAuthorText
 import com.alphi.airobot.view.tempNewMsgText
 import com.unfbx.chatgpt.OpenAiStreamClient
+import com.unfbx.chatgpt.entity.chat.BaseChatCompletion
+import com.unfbx.chatgpt.entity.chat.BaseMessage
 import com.unfbx.chatgpt.entity.chat.ChatCompletion
 import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse
 import com.unfbx.chatgpt.entity.chat.Message
@@ -53,7 +57,7 @@ private val defaultKey: String? = null
 private var currentApiHost: String? = null
 private var currentKey: String? = null
 private lateinit var preferences: SharedPreferences
-internal lateinit var AiModel: ChatCompletion.Model
+internal var AiModel: BaseChatCompletion.Model = BaseChatCompletion.Model.GPT_4
 private val mChatContextMessages: MutableList<Message> = ArrayList()
 
 private lateinit var dbHelper: ChatGptApiDBHelper
@@ -70,9 +74,13 @@ class OpenAiModel {
                 preferences = context.getSharedPreferences("ai-property", Context.MODE_PRIVATE)
 
                 val model = preferences.getString("model", null)
-                AiModel = if (model == null) ChatCompletion.Model.GPT_3_5_TURBO_0301
-                else ChatCompletion.Model.values().find { it.getName() == model }
-                    ?: ChatCompletion.Model.GPT_3_5_TURBO_0301
+                if (!model.isNullOrBlank()) {
+                    try {
+                        AiModel = BaseChatCompletion.Model.valueOf(model)
+                    } catch (e: Exception) {
+                        Log.e("initProperty", "AiModel: load properties failure.", e)
+                    }
+                }
 
                 dbHelper = ChatGptApiDBHelper(context)
                 mOpenApiList = dbHelper.queryAll()
@@ -109,7 +117,7 @@ class OpenAiModel {
                 private lateinit var mData: MsgData
                 private var isDoneSuccess = false
                 private val mChatStrBuilder = StringBuilder()
-                private var mAssistantModel: Message.Role? = null
+                private var mAssistantModel: BaseMessage.Role? = null
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     currentEventSource = eventSource
                 }
@@ -137,7 +145,7 @@ class OpenAiModel {
                     val responseData =
                         JSONObject.parseObject(data, ChatCompletionResponse::class.java)
                     if (mAssistantModel == null) {
-                        mAssistantModel = Message.Role.values()
+                        mAssistantModel = BaseMessage.Role.values()
                             .find { responseData.choices[0].delta.role == it.getName() }
                     }
                     val content: String = responseData.choices.joinToString {
@@ -199,7 +207,7 @@ class OpenAiModel {
                 }
             }
             val message: Message =
-                Message.builder().role(Message.Role.USER).content(text).build()
+                Message.builder().role(BaseMessage.Role.USER).content(text).build()
             mChatContextMessages.add(message)
             val chatCompletion =
                 ChatCompletion.builder().messages(mChatContextMessages).model(AiModel.getName())
@@ -267,7 +275,7 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
         }
 
 
-        var rememberAPiSelectIndex by remember { mutableStateOf(mSelectApiIndex) }
+        var rememberAPiSelectIndex by remember { mutableIntStateOf(mSelectApiIndex) }
 
         val confirmListener = fun() {
             if (mOpenApiList.size > 0) {
@@ -501,7 +509,7 @@ fun ModifyApiDialog(
 @Composable
 fun OpenModelSettingDialog(
     dismiss: () -> Unit,
-    model: MutableState<ChatCompletion.Model>,
+    model: MutableState<BaseChatCompletion.Model>,
     msgDataList: MutableList<MsgData>
 ) {
 
@@ -511,40 +519,42 @@ fun OpenModelSettingDialog(
         },
         confirmButton = {},
         text = {
-            Column {
-                ChatCompletion.Model.values().forEach {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = (it == model.value),
-                                onClick = {
-                                    if (AiModel != it) {
-                                        model.value = it
-                                        AiModel = model.value
-                                        val editor = preferences.edit()
-                                        editor.putString("model", AiModel.getName())
-                                        editor.apply()
-                                        OpenAiModel.interruptAiResponse()
+            LazyColumn {
+                BaseChatCompletion.Model.values().forEach {
+                    item {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = (it == model.value),
+                                    onClick = {
+                                        if (AiModel != it) {
+                                            model.value = it
+                                            AiModel = model.value
+                                            val editor = preferences.edit()
+                                            editor.putString("model", AiModel.getName())
+                                            editor.apply()
+                                            OpenAiModel.interruptAiResponse()
+                                        }
+                                        mChatContextMessages.clear()
+                                        msgDataList.clear()
                                     }
-                                    mChatContextMessages.clear()
-                                    msgDataList.clear()
-                                }
+                                )
+                                .padding(vertical = 10.dp)
+                        ) {
+                            RadioButton(
+                                selected = (it == model.value),
+                                onClick = null,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .align(Alignment.CenterVertically)
                             )
-                            .padding(vertical = 10.dp)
-                    ) {
-                        RadioButton(
-                            selected = (it == model.value),
-                            onClick = null,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .align(Alignment.CenterVertically)
-                        )
-                        Text(
-                            text = it.getName().replaceFirst("gpt", "GPT"),
-                            fontSize = 20.sp,
-                            modifier = Modifier.align(Alignment.CenterVertically)
-                        )
+                            Text(
+                                text = it.getName().replaceFirst("gpt", "GPT"),
+                                fontSize = 20.sp,
+                                modifier = Modifier.align(Alignment.CenterVertically)
+                            )
+                        }
                     }
                 }
             }

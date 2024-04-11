@@ -9,6 +9,7 @@ import com.unfbx.chatgpt.OpenAiClient;
 import com.unfbx.chatgpt.entity.billing.BillingUsage;
 import com.unfbx.chatgpt.entity.billing.CreditGrantsResponse;
 import com.unfbx.chatgpt.entity.billing.Subscription;
+import com.unfbx.chatgpt.entity.chat.BaseChatCompletion;
 import com.unfbx.chatgpt.entity.chat.ChatCompletion;
 import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse;
 import com.unfbx.chatgpt.entity.chat.Message;
@@ -128,16 +129,16 @@ public class OpenAiClientTest {
         ChatCompletion chatCompletion = ChatCompletion
                 .builder()
                 .messages(messages)
-                .maxTokens((4096 - TikTokensUtil.tokens(ChatCompletion.Model.GPT_3_5_TURBO.getName(),messages)))
+                .maxTokens((4096 - TikTokensUtil.tokens(BaseChatCompletion.Model.GPT_3_5_TURBO.getName(),messages)))
                 .build();
         ChatCompletionResponse chatCompletionResponse = v2.chatCompletion(chatCompletion);
         //获取请求的tokens数量
-        long tokens = chatCompletion.tokens();
+        long tokens = BaseChatCompletion.tokens();
         //这种方式也可以
-//        long tokens = TikTokensUtil.tokens(chatCompletion.getModel(),messages);
+//        long tokens = TikTokensUtil.tokens(BaseChatCompletion.getModel(),messages);
         log.info("Message集合文本：【{}】", messages, tokens);
         log.info("本地计算的请求的tokens数{}", tokens);
-        log.info("本地计算的返回的tokens数{}", TikTokensUtil.tokens(chatCompletion.getModel(),chatCompletionResponse.getChoices().get(0).getMessage().getContent()));
+        log.info("本地计算的返回的tokens数{}", TikTokensUtil.tokens(BaseChatCompletion.getModel(),chatCompletionResponse.getChoices().get(0).getMessage().getContent()));
         log.info("---------------------------------------------------");
         log.info("Open AI 官方计算的总的tokens数{}", chatCompletionResponse.getUsage().getTotalTokens());
         log.info("Open AI 官方计算的请求的tokens数{}", chatCompletionResponse.getUsage().getPromptTokens());
@@ -174,7 +175,7 @@ public class OpenAiClientTest {
         ChatCompletion chatCompletion = ChatCompletion
                 .builder()
                 .messages(Arrays.asList(message))
-                .model(ChatCompletion.Model.GPT_3_5_TURBO.getName())
+                .model(BaseChatCompletion.Model.GPT_3_5_TURBO.getName())
                 .build();
         ChatCompletionResponse chatCompletionResponse = v2.chatCompletion(chatCompletion);
         chatCompletionResponse.getChoices().forEach(e -> {
