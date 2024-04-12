@@ -3,6 +3,7 @@ package com.alphi.airobot.model
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.compose.runtime.mutableStateListOf
 import com.alibaba.fastjson.JSONObject
 import com.alphi.airobot.database.ChatGptApiDBHelper
 import com.alphi.airobot.entity.MsgData
@@ -34,7 +35,7 @@ internal var AiModel: BaseChatCompletion.Model = BaseChatCompletion.Model.GPT_4
 internal val mChatContextMessages: MutableList<Message> = ArrayList()
 
 internal lateinit var dbHelper: ChatGptApiDBHelper
-internal lateinit var mOpenApiList: MutableList<OpenAiApi>
+internal val mOpenApiList = mutableStateListOf<OpenAiApi>()
 internal var mSelectApiIndex = 0
 
 class OpenAiModel {
@@ -62,7 +63,7 @@ class OpenAiModel {
                 }
 
                 dbHelper = ChatGptApiDBHelper(context)
-                mOpenApiList = dbHelper.queryAll()
+                mOpenApiList.addAll(dbHelper.queryAll())
 
                 mSelectApiIndex = preferences.getInt("selectApiIndex", 0)
                 refreshApiConfig()

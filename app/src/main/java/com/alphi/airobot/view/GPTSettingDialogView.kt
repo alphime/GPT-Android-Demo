@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
@@ -57,41 +59,39 @@ fun OpenModelSettingDialog(
         confirmButton = {},
         text = {
             LazyColumn {
-                BaseChatCompletion.Model.values().forEach {
-                    item {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .selectable(
-                                    selected = (it == model.value),
-                                    onClick = {
-                                        if (AiModel != it) {
-                                            model.value = it
-                                            AiModel = model.value
-                                            val editor = preferences.edit()
-                                            editor.putString("model", AiModel.getName())
-                                            editor.apply()
-                                            OpenAiModel.interruptAiResponse()
-                                        }
-                                        mChatContextMessages.clear()
-                                        msgDataList.clear()
-                                    }
-                                )
-                                .padding(vertical = 10.dp)
-                        ) {
-                            RadioButton(
+                items(BaseChatCompletion.Model.values()) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
                                 selected = (it == model.value),
-                                onClick = null,
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .align(Alignment.CenterVertically)
+                                onClick = {
+                                    if (AiModel != it) {
+                                        model.value = it
+                                        AiModel = model.value
+                                        val editor = preferences.edit()
+                                        editor.putString("model", AiModel.getName())
+                                        editor.apply()
+                                        OpenAiModel.interruptAiResponse()
+                                    }
+                                    mChatContextMessages.clear()
+                                    msgDataList.clear()
+                                }
                             )
-                            Text(
-                                text = it.getName().replaceFirst("gpt", "GPT"),
-                                fontSize = 20.sp,
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            )
-                        }
+                            .padding(vertical = 10.dp)
+                    ) {
+                        RadioButton(
+                            selected = (it == model.value),
+                            onClick = null,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .align(Alignment.CenterVertically)
+                        )
+                        Text(
+                            text = it.getName().replaceFirst("gpt", "GPT"),
+                            fontSize = 20.sp,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
                     }
                 }
             }
@@ -111,20 +111,15 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
 //    var keyValue by remember {
 //        mutableStateOf(currentKey)
 //    }
-    fun dismiss() { dialogState.value = false }
-
-    val showApiAddModifyDialogState = remember {
-        mutableStateOf(false)
+    fun dismiss() {
+        dialogState.value = false
     }
 
-    var rememberTempModifyData: OpenAiApi? by remember { mutableStateOf(null) }
+    val updateIndex = remember {
+        mutableStateOf<Int?>(null)
+    }
 
     if (dialogState.value) {
-        fun showApiAddModifyDialog() {
-            showApiAddModifyDialogState.value = true
-            dismiss()
-        }
-
 
         var rememberAPiSelectIndex by remember { mutableIntStateOf(mSelectApiIndex) }
 
@@ -143,7 +138,7 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showApiAddModifyDialog() }) {
+                TextButton(onClick = { updateIndex.value = -1 }) {
                     Text(text = "添加")
                 }
             },
@@ -151,68 +146,69 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
             // 内容
             text = {
                 Column {
-                    mOpenApiList.forEachIndexed { index, data ->
-                        var spendAvailable by remember {
-                            mutableStateOf("查询中")
-                        }
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .combinedClickable(
-                                    onClick = {
-                                        // 选择事件
-                                        mSelectApiIndex = index
-                                        rememberAPiSelectIndex = index
-                                        refreshApiConfig()
-                                    },
-                                    onLongClick = {
-                                        // 修改事件
-                                        rememberTempModifyData = data
-                                        showApiAddModifyDialog()
-                                    },
-                                    onDoubleClick = null
-                                )
-                        ) {
-                            Row {
-                                RadioButton(
-                                    selected = index == rememberAPiSelectIndex, onClick = null,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
-                                Text(
-                                    text = data.name,
-                                    fontSize = 18.sp,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterVertically)
-                                        .padding(horizontal = 6.dp)
-                                )
+                    LazyColumn {
+                        itemsIndexed(mOpenApiList) { index, data ->
+                            var spendAvailable by remember {
+                                mutableStateOf("查询中")
                             }
-                            Text(text = spendAvailable, Modifier.align(Alignment.CenterEnd))
-                        }
-
-                        // 修复请求反应太快了，Compose界面还没加载完成出现的异常
-                        LaunchedEffect(Unit) {
-                            Thread {
-                                spendAvailable = try {
-                                    "￥ ${OpenAiModel.client?.subscription()?.hardLimitUsd}"
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    "查询失败"
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .combinedClickable(
+                                        onClick = {
+                                            // 选择事件
+                                            mSelectApiIndex = index
+                                            rememberAPiSelectIndex = index
+                                            refreshApiConfig()
+                                        },
+                                        onLongClick = {
+                                            // 修改事件
+                                            updateIndex.value = index
+                                        },
+                                        onDoubleClick = null
+                                    )
+                            ) {
+                                Row {
+                                    RadioButton(
+                                        selected = index == rememberAPiSelectIndex,
+                                        onClick = null,
+                                        modifier = Modifier.align(Alignment.CenterVertically)
+                                    )
+                                    Text(
+                                        text = data.name,
+                                        fontSize = 18.sp,
+                                        modifier = Modifier
+                                            .align(Alignment.CenterVertically)
+                                            .padding(horizontal = 6.dp)
+                                    )
                                 }
-                            }.start()
+                                Text(text = spendAvailable, Modifier.align(Alignment.CenterEnd))
+                            }
+                            // 修复请求反应太快了，Compose界面还没加载完成出现的异常
+                            LaunchedEffect(Unit) {
+                                Thread {
+                                    spendAvailable = try {
+                                        "￥ ${OpenAiModel.client?.subscription()?.hardLimitUsd}"
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        "查询失败"
+                                    }
+                                }.start()
+                            }
                         }
+                        //                TextField(value = apiValue, label = {
+                        //                    Text(text = "Open Host")
+                        //                }, onValueChange = {
+                        //                    apiValue = it.ifBlank { defalutOpenApiHost }
+                        //                }, singleLine = true)
+                        //                TextField(value = keyValue, label = {
+                        //                    Text(text = "Api Key")
+                        //                }, onValueChange = {
+                        //                    keyValue = it
+                        //                }, singleLine = true
+                        //                )
                     }
-                    //                TextField(value = apiValue, label = {
-                    //                    Text(text = "Open Host")
-                    //                }, onValueChange = {
-                    //                    apiValue = it.ifBlank { defalutOpenApiHost }
-                    //                }, singleLine = true)
-                    //                TextField(value = keyValue, label = {
-                    //                    Text(text = "Api Key")
-                    //                }, onValueChange = {
-                    //                    keyValue = it
-                    //                }, singleLine = true
-                    //                )
                     AboutAuthorText()
                 }
             }
@@ -221,8 +217,7 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
 
     }
 
-    ModifyApiDialog(showApiModifyDialog = showApiAddModifyDialogState, rememberTempModifyData) {
-        rememberTempModifyData = null
+    ModifyApiDialog(updateIndex = updateIndex) {
         dialogState.value = true
     }
 }
@@ -230,27 +225,27 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
 
 @Composable
 fun ModifyApiDialog(
-    showApiModifyDialog: MutableState<Boolean>,
-    apiData: OpenAiApi? = null,
+    updateIndex: MutableState<Int?>,
     dismissListener: (() -> Unit)?
 ) {
-    if (showApiModifyDialog.value) {
+    if (updateIndex.value != null) {
+        val aiProperties = if (updateIndex.value != -1) mOpenApiList[updateIndex.value!!] else null
         var showApiDeleteDialog by remember {
             mutableStateOf(false)
         }
         var nameTempValue by remember {
             mutableStateOf(
-                apiData?.name ?: ""
+                aiProperties?.name ?: ""
             )
         }
         var hostTempValue by remember {
             mutableStateOf(
-                apiData?.host ?: defaultOpenApiHost
+                aiProperties?.host ?: defaultOpenApiHost
             )
         }
-        var skTempValue by remember { mutableStateOf(apiData?.sk ?: "") }
+        var skTempValue by remember { mutableStateOf(aiProperties?.sk ?: "") }
         AlertDialog(
-            onDismissRequest = { showApiModifyDialog.value = false; dismissListener?.invoke() },
+            onDismissRequest = { updateIndex.value = null; dismissListener?.invoke() },
             title = { Text(text = "API 设置") },
             text = {
                 Column {
@@ -277,33 +272,32 @@ fun ModifyApiDialog(
                     onClick = {
                         if (!hostTempValue.endsWith('/'))
                             hostTempValue += '/'
-                        if (apiData != null) {
-                            apiData.name = nameTempValue
-                            apiData.host = hostTempValue
-                            apiData.sk = skTempValue
-                            dbHelper.update(apiData)
+                        val data = OpenAiApi(
+                            name = nameTempValue,
+                            host = hostTempValue,
+                            sk = skTempValue
+                        )
+                        if (aiProperties != null) {
+                            data.id = aiProperties.id
+                            dbHelper.update(aiProperties)
+                            mOpenApiList[updateIndex.value!!] = data
                         } else {
-                            val data = OpenAiApi(
-                                name = nameTempValue,
-                                host = hostTempValue,
-                                sk = skTempValue
-                            )
                             if (dbHelper.insert(data)) {
                                 mOpenApiList.add(data)
                             }
                         }
                         dismissListener?.invoke()
-                        showApiModifyDialog.value = false
+                        updateIndex.value = null
                     },
                     enabled = (hostTempValue.startsWith("http:") || hostTempValue.startsWith("https:"))
                             && skTempValue.isNotBlank() && nameTempValue.isNotBlank()
                 ) {
-                    Text(text = if (apiData != null) "更新" else "添加")
+                    Text(text = if (aiProperties != null) "更新" else "添加")
                 }
             },
             dismissButton = {
                 Box(modifier = Modifier.fillMaxWidth(0.75F)) {
-                    if (apiData != null) {
+                    if (aiProperties != null) {
                         TextButton(
                             onClick = { showApiDeleteDialog = true },
                             modifier = Modifier.align(Alignment.CenterStart)
@@ -312,7 +306,7 @@ fun ModifyApiDialog(
                         }
                     }
                     TextButton(
-                        onClick = { showApiModifyDialog.value = false; dismissListener?.invoke() },
+                        onClick = { updateIndex.value = null; dismissListener?.invoke() },
                         modifier = Modifier.align(Alignment.CenterEnd)
                     ) {
                         Text(text = "取消")
@@ -326,15 +320,15 @@ fun ModifyApiDialog(
                 onDismissRequest = { showApiDeleteDialog = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        if (apiData != null) {
-                            dbHelper.deleteOne(apiData)
-                            mOpenApiList.remove(apiData)
+                        if (aiProperties != null) {
+                            dbHelper.deleteOne(aiProperties)
+                            mOpenApiList.remove(aiProperties)
                             if (mOpenApiList.size - 1 < mSelectApiIndex) {
                                 mSelectApiIndex = 0
                             }
                         }
                         showApiDeleteDialog = false
-                        showApiModifyDialog.value = false
+                        updateIndex.value = null
                         dismissListener?.invoke()
                     }) {
                         Text(text = "确定")
