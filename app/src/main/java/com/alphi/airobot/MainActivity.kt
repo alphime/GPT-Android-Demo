@@ -55,6 +55,7 @@ import com.alphi.airobot.view.OpenSettingsDialog
 import com.alphi.airobot.view.msgBackgroundBrush
 import kotlinx.coroutines.launch
 
+private var mChatList: MutableList<MsgData>? = null
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,7 +87,10 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FuncView() {
-    val mList = remember { mutableStateListOf<MsgData>() }
+    if (mChatList == null) {
+        mChatList = remember { mutableStateListOf<MsgData>() }
+    }
+    val chatList = mChatList!!
     val showSettingsDialogState = remember { mutableStateOf(false) }
     var showModelSettingDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -120,8 +124,8 @@ fun FuncView() {
             },
             colors = appBarColors()
         )
-        InitChatBoxView(mList, modifier = Modifier.weight(1f))
-        InitInputView(mList)
+        InitChatBoxView(chatList, modifier = Modifier.weight(1f))
+        InitInputView(chatList)
     }
     OpenSettingsDialog(showSettingsDialogState)
     if (showModelSettingDialog)
@@ -130,7 +134,7 @@ fun FuncView() {
                 showModelSettingDialog = false
             },
             model = model,
-            msgDataList = mList
+            msgDataList = chatList
         )
 }
 

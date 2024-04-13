@@ -105,12 +105,6 @@ fun OpenModelSettingDialog(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
-    //    var apiValue by remember {
-//        mutableStateOf(defalutOpenApiHost)
-//    }
-//    var keyValue by remember {
-//        mutableStateOf(currentKey)
-//    }
     fun dismiss() {
         dialogState.value = false
     }
@@ -197,17 +191,6 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                                 }.start()
                             }
                         }
-                        //                TextField(value = apiValue, label = {
-                        //                    Text(text = "Open Host")
-                        //                }, onValueChange = {
-                        //                    apiValue = it.ifBlank { defalutOpenApiHost }
-                        //                }, singleLine = true)
-                        //                TextField(value = keyValue, label = {
-                        //                    Text(text = "Api Key")
-                        //                }, onValueChange = {
-                        //                    keyValue = it
-                        //                }, singleLine = true
-                        //                )
                     }
                     AboutAuthorText()
                 }
@@ -272,18 +255,18 @@ fun ModifyApiDialog(
                     onClick = {
                         if (!hostTempValue.endsWith('/'))
                             hostTempValue += '/'
-                        val data = OpenAiApi(
+                        val newData = OpenAiApi(
                             name = nameTempValue,
                             host = hostTempValue,
                             sk = skTempValue
                         )
                         if (aiProperties != null) {
-                            data.id = aiProperties.id
-                            dbHelper.update(aiProperties)
-                            mOpenApiList[updateIndex.value!!] = data
+                            newData.id = aiProperties.id
+                            dbHelper.update(newData)
+                            mOpenApiList[updateIndex.value!!] = newData
                         } else {
-                            if (dbHelper.insert(data)) {
-                                mOpenApiList.add(data)
+                            if (dbHelper.insert(newData)) {
+                                mOpenApiList.add(newData)
                             }
                         }
                         dismissListener?.invoke()

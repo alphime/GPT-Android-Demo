@@ -2,8 +2,6 @@ package com.alphi.airobot.view
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -11,15 +9,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +30,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.model.OpenAiModel
-import kotlinx.coroutines.delay
 
 @SuppressLint("RememberReturnType")
 @OptIn(
@@ -61,6 +57,7 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
         })
         text = ""
         keyboardController?.hide()
+        scrollBottomEvent(scope)
     }
 
     Row(
@@ -74,20 +71,20 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
             Modifier
                 .padding(6.dp)
                 .weight(1f),
-            interactionSource = remember { MutableInteractionSource() }
-                .also { interactionSource ->
-                    LaunchedEffect(interactionSource) {
-                        interactionSource.interactions.collect {
-                            if (it is PressInteraction.Release) {
-                                // works like onClick
-                                if (text.isEmpty()) {
-                                    delay(100)
-                                    scrollBottomEvent()
-                                }
-                            }
-                        }
-                    }
-                },
+//            interactionSource = remember { MutableInteractionSource() }
+//                .also { interactionSource ->
+//                    LaunchedEffect(interactionSource) {
+//                        interactionSource.interactions.collect {
+//                            if (it is PressInteraction.Release) {
+//                                // works like onClick
+//                                if (text.isEmpty()) {
+//                                    delay(100)
+//                                    scrollBottomEvent()
+//                                }
+//                            }
+//                        }
+//                    }
+//                },
             shape = RoundedCornerShape(size = 80F),
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
@@ -116,7 +113,7 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                             .align(Alignment.CenterVertically),
                         enabled = mSendButtonEnable
                     ) {
-                        Icon(Icons.Default.Send, contentDescription = "发送")
+                        Icon(Icons.AutoMirrored.Default.Send, contentDescription = "发送")
                     }
                 }
             }

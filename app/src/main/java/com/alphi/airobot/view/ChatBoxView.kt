@@ -4,12 +4,16 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,6 +27,7 @@ import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -34,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
@@ -74,14 +80,14 @@ class ChatBoxView {
 }
 
 private var mIsCreateClock = false
-private lateinit var ChatListState: LazyListState
+private lateinit var chatListState: LazyListState
 internal lateinit var tempNewMsgText: MutableState<String?>
 
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
-    ChatListState = rememberLazyListState()
+    chatListState = rememberLazyListState()
     tempNewMsgText = remember { mutableStateOf(null) }
     var chatOneClockText by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
@@ -102,120 +108,125 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
 //        list.add(MsgData("![猫咪图片](https://cdn.pixabay.com/photo/2017/02/20/18/03/cat-2083492_1280.jpg)"))
     }
 
-    LazyColumn(state = ChatListState, modifier = modifier) {
-        try {
-            // 时钟
-            item {
-                Row(
-                    Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
-                ) {
-                    NewMsgContentView(text = chatOneClockText, maxWidth = 230.dp)
-                }
-            }
-            // 聊天列表     不建议forEach嵌套item，否则滑动会出现问题
-            items(list) { v ->
-                val minWidth =
-                    if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(
-                            v.text,
-                            onlyImage = true
-                        )
-                    ) 200.dp
-                    else MsgContentViewDefaultParam.minWidth
-                Row(
-                    Modifier.fillMaxWidth(), horizontalArrangement = if (v.isMe) Arrangement.End
-                    else Arrangement.Start
-                ) {
-                    if (v.selectable) SelectionContainer(
-                        content = {
-                            NewMsgContentView(
-                                text = v.text,
-                                enableMarkDownText = !v.isMe && !v.isErr,
-                                textIsSelectable = true,
-                                minWidth = minWidth,
-                                isMe = v.isMe
-                            )
-                        },
-                    )
-                    else DisableSelection(content = {
-                        NewMsgContentView(
-                            text = v.text,
-                            enableMarkDownText = !v.isMe,
-                            minWidth = minWidth,
-                            isMe = v.isMe
-                        )
-                    })
-                }
-
-            }
-            // 新字节流消息
-            item {
-                if (tempNewMsgText.value != null) {
-                    Log.d("TAG-View", "FuncView: 03-2t")
+    Box(modifier = modifier) {
+        LazyColumn(state = chatListState, modifier = Modifier.fillMaxSize()) {
+            try {
+                // 时钟
+                item {
                     Row(
                         Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
                     ) {
-                        Log.d("TAG-View", "FuncView: 03-2")
-                        var textValue = tempNewMsgText.value
-                            ?.replace("|\n", "|\b  \n") ?: ""
-                        if (isMarkDownImage(textValue)) {
-                            textValue = textValue.replace("](", "]\b(")
-                        }
-                        NewMsgContentView(
-                            text = textValue,
-                            marginValues = PaddingValues(
-                                start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp
-                            ),      // margin
-                            enableMarkDownText = true,
-                            isMe = false
-                        )
-                        var visibleCloseIcon by remember { mutableStateOf(false) }
-                        if (visibleCloseIcon) {
-                            IconButton(
-                                onClick = {
-                                    OpenAiModel.interruptAiResponse()
-                                    visibleCloseIcon = false
-                                },
-                                Modifier
-                                    .padding(top = 12.dp)
-                                    .background(
-                                        shape = CircleShape,
-                                        color = Color(0x33A3A3A3),
-                                    )
-                                    .size(30.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "停止",
-                                    Modifier.size(20.dp),
-                                    tint = Color(
-                                        if (!isSystemInDarkTheme()) 0x66333333
-                                        else 0xAAAAAAAA
-                                    )
+                        NewMsgContentView(text = chatOneClockText, maxWidth = 230.dp)
+                    }
+                }
+                // 聊天列表     不建议forEach嵌套item，否则滑动会出现问题
+                items(list) { v ->
+                    val minWidth =
+                        if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(
+                                v.text,
+                                onlyImage = true
+                            )
+                        ) 200.dp
+                        else MsgContentViewDefaultParam.minWidth
+                    Row(
+                        Modifier.fillMaxWidth(), horizontalArrangement = if (v.isMe) Arrangement.End
+                        else Arrangement.Start
+                    ) {
+                        if (v.selectable) SelectionContainer(
+                            content = {
+                                NewMsgContentView(
+                                    text = v.text,
+                                    enableMarkDownText = !v.isMe && !v.isErr,
+                                    textIsSelectable = true,
+                                    minWidth = minWidth,
+                                    isMe = v.isMe
                                 )
+                            },
+                        )
+                        else DisableSelection(content = {
+                            NewMsgContentView(
+                                text = v.text,
+                                enableMarkDownText = !v.isMe,
+                                minWidth = minWidth,
+                                isMe = v.isMe
+                            )
+                        })
+                    }
+
+                }
+                // 新字节流消息
+                if (tempNewMsgText.value != null) {
+                    item {
+                        Log.d("TAG-View", "FuncView: 03-2t")
+                        Row(
+                            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
+                        ) {
+                            Log.d("TAG-View", "FuncView: 03-2")
+                            var textValue = tempNewMsgText.value
+                                ?.replace("|\n", "|\b  \n") ?: ""
+                            if (isMarkDownImage(textValue)) {
+                                textValue = textValue.replace("](", "]\b(")
                             }
-                        }
-                        LaunchedEffect(Unit) {
-                            delay(2000)
-                            visibleCloseIcon = true
+                            NewMsgContentView(
+                                text = textValue,
+                                marginValues = PaddingValues(
+                                    start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp
+                                ),      // margin
+                                enableMarkDownText = true,
+                                isMe = false
+                            )
+                            var visibleCloseIcon by remember { mutableStateOf(false) }
+                            if (visibleCloseIcon) {
+                                IconButton(
+                                    onClick = {
+                                        OpenAiModel.interruptAiResponse()
+                                        visibleCloseIcon = false
+                                    },
+                                    Modifier
+                                        .padding(top = 12.dp)
+                                        .background(
+                                            shape = CircleShape,
+                                            color = Color(0x33A3A3A3),
+                                        )
+                                        .size(30.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "停止",
+                                        Modifier.size(20.dp),
+                                        tint = Color(
+                                            if (!isSystemInDarkTheme()) 0x66333333
+                                            else 0xAAAAAAAA
+                                        )
+                                    )
+                                }
+                            } else {
+                                LaunchedEffect(Unit) {
+                                    delay(2000)
+                                    visibleCloseIcon = true
+                                }
+                            }
                         }
                     }
                 }
+            } catch (e: ConcurrentModificationException) {
+                //
             }
-        } catch (e: ConcurrentModificationException) {
-            //
+        }
+        if (chatListState.canScrollForward) {
+            IconButton(
+                onClick = { scrollBottomEvent(scope) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "滑动到底部"
+                )
+            }
         }
     }
-//            Box(contentAlignment = Alignment.BottomEnd) {
-//                Button(onClick = {
-//                    scope.launch { state.animateScrollToItem(mList.size) }
-//                },
-//                    Modifier
-//                        .wrapContentWidth()
-//                        .wrapContentHeight()
-//                ){
-//                    Text(text = "滚动到底部")
-//                }
-//            }
 }
 
 /**
@@ -225,7 +236,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
 fun scrollBottomEvent(
     scope: CoroutineScope, needOnBottom: Boolean = false
 ) {
-    if (!ChatListState.canScrollForward || !needOnBottom) {
+    if (!chatListState.canScrollForward || !needOnBottom) {
         scope.launch {
             scrollBottomEvent()
         }
@@ -233,7 +244,13 @@ fun scrollBottomEvent(
 }
 
 internal suspend fun scrollBottomEvent() {
-    ChatListState.animateScrollToItem(Int.MAX_VALUE)
+    chatListState.animateScrollBy(
+        value = chatListState.layoutInfo.viewportEndOffset.toFloat(),
+        animationSpec = tween(durationMillis = 800)
+    )
+    if (chatListState.canScrollForward) {
+        chatListState.animateScrollToItem(Int.MAX_VALUE)
+    }
 }
 
 
@@ -280,7 +297,7 @@ private fun NewMsgContentView(
                 .padding(10.dp)
                 .sizeIn(
                     maxWidth = maxWidth, minWidth = minWidth
-                )) {link, type ->
+                )) { link, type ->
             if (type == MarkdownViewLinkType.WebLink) {
                 Toast.makeText(ctx, link, Toast.LENGTH_SHORT).show()
                 val intent = Intent()

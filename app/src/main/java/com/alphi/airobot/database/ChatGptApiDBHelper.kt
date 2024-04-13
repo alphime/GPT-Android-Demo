@@ -2,7 +2,6 @@ package com.alphi.airobot.database
 
 import android.content.ContentValues
 import android.content.Context
-import android.database.sqlite.SQLiteAbortException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
@@ -89,8 +88,8 @@ class ChatGptApiDBHelper(
     }
 
     private fun assertId(data: OpenAiApi, method: String) {
-        if (data.id == null) {
-            throw SQLiteAbortException("<OpenAiApiBean.${FeedEntry.COLUMN_ID}> can't be null when running the $method method!")
+        assert(data.id != null) {
+            "<OpenAiApiBean.${FeedEntry.COLUMN_ID}> can't be null when running the $method method!"
         }
     }
 }
