@@ -36,7 +36,7 @@ internal val mChatContextMessages: MutableList<Message> = ArrayList()
 
 internal lateinit var dbHelper: ChatGptApiDBHelper
 internal val mOpenApiList = mutableStateListOf<OpenAiApi>()
-internal var mSelectApiIndex = 0
+internal var mSelectApiIndex = -1       // 正常应该 >=0
 
 class OpenAiModel {
     companion object {
@@ -44,31 +44,33 @@ class OpenAiModel {
             private set
         private var currentEventSource: EventSource? = null
         fun initProperty(context: Context) {
-            AdVanceNestCallback {
-                preferences = context.getSharedPreferences("ai-property", Context.MODE_PRIVATE)
+            if (mSelectApiIndex == -1) {
+                AdVanceNestCallback {
+                    preferences = context.getSharedPreferences("ai-property", Context.MODE_PRIVATE)
 
-                val model = preferences.getString("model", null)
-                if (!model.isNullOrBlank()) {
-                    try {
-                        for (m in BaseChatCompletion.Model.values()) {
-                            if (m.getName() == model) {
-                                AiModel = m
-                                break
+                    val model = preferences.getString("model", null)
+                    if (!model.isNullOrBlank()) {
+                        try {
+                            for (m in BaseChatCompletion.Model.values()) {
+                                if (m.getName() == model) {
+                                    AiModel = m
+                                    break
+                                }
                             }
+                            AiModel = BaseChatCompletion.Model.valueOf(model)
+                        } catch (e: Exception) {
+                            Log.e("initProperty", "AiModel: load properties failure.", e)
                         }
-                        AiModel = BaseChatCompletion.Model.valueOf(model)
-                    } catch (e: Exception) {
-                        Log.e("initProperty", "AiModel: load properties failure.", e)
                     }
+
+                    dbHelper = ChatGptApiDBHelper(context)
+                    mOpenApiList.addAll(dbHelper.queryAll())
+
+                    mSelectApiIndex = preferences.getInt("selectApiIndex", 0)
+                    refreshApiConfig()
+
+                    Log.d("TAG", "initProperty: $mOpenApiList")
                 }
-
-                dbHelper = ChatGptApiDBHelper(context)
-                mOpenApiList.addAll(dbHelper.queryAll())
-
-                mSelectApiIndex = preferences.getInt("selectApiIndex", 0)
-                refreshApiConfig()
-
-                Log.d("TAG", "initProperty: $mOpenApiList")
             }
             if (client == null) {
                 refreshClient()
