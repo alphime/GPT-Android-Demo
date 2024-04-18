@@ -3,6 +3,8 @@ package com.alphi.airobot.view
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import android.util.TypedValue
+import android.widget.TextView
 import android.widget.Toast
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -22,14 +24,12 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.selection.DisableSelection
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -49,11 +49,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.alphi.airobot.compose.MarkdownView
 import com.alphi.airobot.compose.MarkdownViewLinkType
 import com.alphi.airobot.entity.MsgData
@@ -142,25 +144,13 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                             }, horizontalArrangement = if (v.isMe) Arrangement.End
                         else Arrangement.Start
                     ) {
-                        if (v.selectable) SelectionContainer(
-                            content = {
-                                NewMsgContentView(
-                                    text = v.text,
-                                    enableMarkDownText = !v.isMe && !v.isErr,
-                                    textIsSelectable = true,
-                                    minWidth = minWidth,
-                                    isMe = v.isMe
-                                )
-                            },
+                        NewMsgContentView(
+                            text = v.text,
+                            enableMarkDownText = !v.isMe && !v.isErr,
+                            textIsSelectable = true,
+                            minWidth = minWidth,
+                            isMe = v.isMe
                         )
-                        else DisableSelection(content = {
-                            NewMsgContentView(
-                                text = v.text,
-                                enableMarkDownText = !v.isMe,
-                                minWidth = minWidth,
-                                isMe = v.isMe
-                            )
-                        })
                     }
 
                 }
@@ -298,10 +288,11 @@ private fun NewMsgContentView(
     minWidth: Dp = MsgContentViewDefaultParam.minWidth,
     maxWidth: Dp = MsgContentViewDefaultParam.maxWidth,
 ) {
+    val fontSize = 16F.sp
     if (enableMarkDownText) {
         val ctx = LocalContext.current
         MarkdownView(content = text,
-            fontSize = 16.sp,
+            fontSize = fontSize,
             textIsSelectable = textIsSelectable,
             modifier = Modifier
                 .padding(marginValues)   // margin
@@ -328,7 +319,18 @@ private fun NewMsgContentView(
             }
         }
     } else {
-        Text(text = text, modifier = Modifier
+        // 因为Text()不支持全选，采用原生TextView
+        val text_color = LocalContentColor.current
+        AndroidView(factory = { ctx ->
+            TextView(ctx).apply {
+                this.text = text
+                setTextIsSelectable(textIsSelectable)
+                setTextColor(text_color.toArgb())
+                letterSpacing = 0.02f
+                setLineSpacing(0f, 1.14f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize.value)
+            }
+        }, modifier = Modifier
             .padding(marginValues)   // margin
             .drawWithCache {
                 val brush = msgBackgroundBrush
@@ -341,7 +343,8 @@ private fun NewMsgContentView(
                 }
             }
             .padding(10.dp)
-            .sizeIn(maxWidth = maxWidth))
+            .sizeIn(maxWidth = maxWidth)
+        )
     }
 }
 
