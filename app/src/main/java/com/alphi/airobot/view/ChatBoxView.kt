@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -63,6 +64,7 @@ import com.alphi.airobot.model.OpenAiModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import me.saket.bettermovementmethod.BuildConfig
 import java.util.Calendar
 import java.util.Date
 import java.util.Timer
@@ -83,7 +85,8 @@ class ChatBoxView {
 
 private var mIsCreateClock = false
 private lateinit var chatListState: LazyListState
-internal lateinit var tempNewMsgText: MutableState<String?>
+private lateinit var tempNewMsgText: MutableState<String?>
+private lateinit var enableIconForCloseDownloadMessage: MutableState<Boolean>
 
 // [0]: 接受信息字节流视图高度；[1]: 时间视图高度；[2+]: 历史消息列表单项视图高度；
 // 设计思路：当读取开始至到第一次出现Null的前一个为止
@@ -94,6 +97,8 @@ private val listItemHeight = arrayOfNulls<Int>(1000000)
 fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     chatListState = rememberLazyListState()
     tempNewMsgText = remember { mutableStateOf(null) }
+    val scrollState = rememberScrollState()
+    enableIconForCloseDownloadMessage = remember { mutableStateOf(false) }
     var chatOneClockText by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     if (mIsCreateClock) {
@@ -128,7 +133,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                     }
                 }
                 // 聊天列表     不建议forEach嵌套item，否则滑动会出现问题
-                itemsIndexed(list) { index, v ->
+                itemsIndexed(list, contentType = {index, _ -> index}) { index, v ->
                     val minWidth =
                         if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(
                                 v.text,
@@ -156,16 +161,20 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                 }
                 // 新字节流消息
                 if (tempNewMsgText.value != null) {
-                    item {
-                        Log.d("TAG-View", "FuncView: 03-2t")
+                    item (contentType = {list.size + 1}) {
+                        if (BuildConfig.DEBUG) {
+                            Log.d("TAG-FuncView", "NewMsgView: item view ready Row")
+                        }
                         Row(
                             Modifier
                                 .fillMaxWidth()
                                 .onGloballyPositioned {
-                                    listItemHeight[0] = it.size.height
+                                    listItemHeight[0] = it.size.height + 80
                                 }, horizontalArrangement = Arrangement.Start
                         ) {
-                            Log.d("TAG-View", "FuncView: 03-2")
+                            if (BuildConfig.DEBUG) {
+                                Log.d("TAG-FuncView", "NewMsgView: item Row view")
+                            }
                             var textValue = tempNewMsgText.value
                                 ?.replace("|\n", "|\b  \n") ?: ""
                             if (isMarkDownImage(textValue)) {
@@ -179,35 +188,38 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                                 enableMarkDownText = true,
                                 isMe = false
                             )
-                            var visibleCloseIcon by remember { mutableStateOf(false) }
-                            if (visibleCloseIcon) {
-                                IconButton(
-                                    onClick = {
-                                        OpenAiModel.interruptAiResponse()
-                                        visibleCloseIcon = false
-                                    },
-                                    Modifier
-                                        .padding(top = 12.dp)
-                                        .background(
-                                            shape = CircleShape,
-                                            color = Color(0x33A3A3A3),
+                            if (enableIconForCloseDownloadMessage.value) {
+                                // 取消接受消息图标
+                                var visible by remember { mutableStateOf(false) }
+                                if (visible) {
+                                    IconButton(
+                                        onClick = {
+                                            OpenAiModel.interruptAiResponse()
+                                            visible = false
+                                        },
+                                        Modifier
+                                            .padding(top = 12.dp)
+                                            .background(
+                                                shape = CircleShape,
+                                                color = Color(0x33A3A3A3),
+                                            )
+                                            .size(30.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "停止",
+                                            Modifier.size(20.dp),
+                                            tint = Color(
+                                                if (!isSystemInDarkTheme()) 0x66333333
+                                                else 0xAAAAAAAA
+                                            )
                                         )
-                                        .size(30.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "停止",
-                                        Modifier.size(20.dp),
-                                        tint = Color(
-                                            if (!isSystemInDarkTheme()) 0x66333333
-                                            else 0xAAAAAAAA
-                                        )
-                                    )
-                                }
-                            } else {
-                                LaunchedEffect(Unit) {
-                                    delay(2000)
-                                    visibleCloseIcon = true
+                                    }
+                                } else {
+                                    LaunchedEffect(Unit) {
+                                        delay(2000)
+                                        visible = true
+                                    }
                                 }
                             }
                         }
@@ -386,4 +398,9 @@ private fun isMarkDownImage(text: String, onlyImage: Boolean = false): Boolean {
         }
         false
     }
+}
+
+fun setTempNewMsgText(text: String?, enableCloseDownIcon: Boolean = true) {
+    tempNewMsgText.value = text
+    enableIconForCloseDownloadMessage.value = enableCloseDownIcon
 }

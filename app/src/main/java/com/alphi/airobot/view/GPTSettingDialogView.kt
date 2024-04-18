@@ -159,6 +159,8 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                                         onLongClick = {
                                             // 修改事件
                                             updateIndex.value = index
+                                            dismiss()
+                                            setTempNewMsgText(null)
                                         },
                                         onDoubleClick = null
                                     )

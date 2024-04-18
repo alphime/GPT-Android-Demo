@@ -1,7 +1,6 @@
 package com.example.airobot
 
 import org.junit.Test
-import java.util.regex.Pattern
 
 
 /**

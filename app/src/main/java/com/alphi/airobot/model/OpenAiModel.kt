@@ -9,7 +9,6 @@ import com.alphi.airobot.database.ChatGptApiDBHelper
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.entity.OpenAiApi
 import com.alphi.airobot.utils.AdVanceNestCallback
-import com.alphi.airobot.view.tempNewMsgText
 import com.unfbx.chatgpt.OpenAiStreamClient
 import com.unfbx.chatgpt.entity.chat.BaseChatCompletion
 import com.unfbx.chatgpt.entity.chat.BaseMessage
@@ -80,16 +79,14 @@ class OpenAiModel {
 
         fun launchAiQuestion(
             text: String,
-            list: MutableList<MsgData>,
             closeListener: (MsgData) -> Unit,
-            eventListener: (() -> Unit?)? = null
+            eventListener: ((String) -> Unit)? = null
         ) {
             if (client == null)
                 refreshClient()
 
             if (client == null) {
-                val mData = MsgData("注意：使用GPT前，需设置API才能使用！", isMe = false)
-                list.add(mData)
+                val mData = MsgData("注意：使用GPT前，需设置API才能使用！", isMe = false, isErr = true)
                 closeListener(mData)
                 return
             }
@@ -120,8 +117,6 @@ class OpenAiModel {
                                 .content(mChatStrBuilder.toString())
                                 .build()
                         )
-                        list.add(mData)
-                        tempNewMsgText.value = null
                         if (BuildConfig.DEBUG) {
                             Log.d("OpenAiResponse", "onEvent: $mChatStrBuilder")
                         }
@@ -137,10 +132,9 @@ class OpenAiModel {
                         it.delta.content ?: ""
                     }
                     mChatStrBuilder.append(content)
-                    tempNewMsgText.value = mChatStrBuilder.toString()
 
                     if (eventListener != null) {
-                        eventListener()
+                        eventListener(mChatStrBuilder.toString())
                     }
                 }
 
@@ -148,8 +142,11 @@ class OpenAiModel {
                     if (!isDoneSuccess) {
                         mData = MsgData(mChatStrBuilder.toString(), isMe = false)
                         closeListener(mData)
-                        list.add(mData)
-                        tempNewMsgText.value = null
+                        mChatContextMessages.add(
+                            Message.builder().role(mAssistantModel)
+                                .content(mChatStrBuilder.toString())
+                                .build()
+                        )
                     }
                 }
 
@@ -163,8 +160,10 @@ class OpenAiModel {
                         if (response.code == 200) {
                             mData = MsgData("$mChatStrBuilder\t\t /End", isMe = false)
                             closeListener(mData)
-                            list.add(mData)
-                            tempNewMsgText.value = null
+                            mChatContextMessages.add(
+                                Message.builder().role(mAssistantModel)
+                                    .content(mChatStrBuilder.toString())
+                                    .build())
                             return      // 200状态码接受正常直接结束异常处理
                         }
                         val strBuilder = StringBuilder("ERR code: ${response.code}  \n")
@@ -191,7 +190,6 @@ class OpenAiModel {
                         }
                     }
                     mData = MsgData(content, isMe = false, isErr = true)
-                    list.add(mData)
                     closeListener(mData)
                     Log.w("OpenAiResponse", resultBody, t)
                 }

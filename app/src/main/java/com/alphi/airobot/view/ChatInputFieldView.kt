@@ -34,21 +34,28 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    var text by remember { mutableStateOf("") }
+    var inputText by remember { mutableStateOf("") }
     // 发送事件
     val onSendClick = fun() {
-        if (text.isBlank())
+        if (inputText.isBlank())
             return
         mSendButtonEnable = false
-        val data = MsgData(text, isMe = true, selectable = true)
+        val data = MsgData(inputText, isMe = true, selectable = true)
         list.add(data)
-        OpenAiModel.launchAiQuestion(text, list, closeListener = {
+        OpenAiModel.launchAiQuestion(inputText, closeListener = {
             mSendButtonEnable = true
             it.selectable = true
+            if (it.isErr)
+                setTempNewMsgText(it.text, enableCloseDownIcon = false)
+            else {
+                list.add(it)
+                setTempNewMsgText(null)
+            }
         }, eventListener = {
             scrollBottomEvent(scope, needOnBottom = true)
+            setTempNewMsgText(it)
         })
-        text = ""
+        inputText = ""
         keyboardController?.hide()
         scrollBottomEvent(scope)
     }
@@ -59,8 +66,8 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
             .then(modifier)
     ) {
         TextField(
-            value = text,
-            onValueChange = { text = it },
+            value = inputText,
+            onValueChange = { inputText = it },
             Modifier
                 .padding(6.dp)
                 .weight(1f),
@@ -90,10 +97,10 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
             maxLines = 5,
             trailingIcon = {
                 Row {
-                    if (text.isNotEmpty()) {
+                    if (inputText.isNotEmpty()) {
                         IconButton(     //clear
                             onClick = {
-                                text = ""
+                                inputText = ""
                             }) {
                             Icon(Icons.Default.Clear, contentDescription = "清除文字")
                         }
