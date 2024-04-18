@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.DisableSelection
@@ -50,6 +49,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -83,8 +83,11 @@ private var mIsCreateClock = false
 private lateinit var chatListState: LazyListState
 internal lateinit var tempNewMsgText: MutableState<String?>
 
+// [0]: 接受信息字节流视图高度；[1]: 时间视图高度；[2+]: 历史消息列表单项视图高度；
+// 设计思路：当读取开始至到第一次出现Null的前一个为止
+private val listItemHeight = arrayOfNulls<Int>(1000000)
 
-@OptIn(ExperimentalLayoutApi::class)
+
 @Composable
 fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     chatListState = rememberLazyListState()
@@ -114,13 +117,16 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                 // 时钟
                 item {
                     Row(
-                        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
+                        Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { listItemHeight[1] = it.size.height },
+                        horizontalArrangement = Arrangement.Start
                     ) {
                         NewMsgContentView(text = chatOneClockText, maxWidth = 230.dp)
                     }
                 }
                 // 聊天列表     不建议forEach嵌套item，否则滑动会出现问题
-                items(list) { v ->
+                itemsIndexed(list) { index, v ->
                     val minWidth =
                         if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(
                                 v.text,
@@ -129,7 +135,11 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                         ) 200.dp
                         else MsgContentViewDefaultParam.minWidth
                     Row(
-                        Modifier.fillMaxWidth(), horizontalArrangement = if (v.isMe) Arrangement.End
+                        Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned {
+                                listItemHeight[index + 2] = it.size.height
+                            }, horizontalArrangement = if (v.isMe) Arrangement.End
                         else Arrangement.Start
                     ) {
                         if (v.selectable) SelectionContainer(
@@ -159,7 +169,11 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                     item {
                         Log.d("TAG-View", "FuncView: 03-2t")
                         Row(
-                            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start
+                            Modifier
+                                .fillMaxWidth()
+                                .onGloballyPositioned {
+                                    listItemHeight[0] = it.size.height
+                                }, horizontalArrangement = Arrangement.Start
                         ) {
                             Log.d("TAG-View", "FuncView: 03-2")
                             var textValue = tempNewMsgText.value
@@ -208,7 +222,8 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                             }
                         }
                     }
-                }
+                } else
+                    listItemHeight[0] = 0
             } catch (e: ConcurrentModificationException) {
                 //
             }
@@ -244,13 +259,19 @@ fun scrollBottomEvent(
 }
 
 internal suspend fun scrollBottomEvent() {
+    var height = 0
+    for (h in listItemHeight) {
+        if (h == null)
+            break
+        height += h
+    }
     chatListState.animateScrollBy(
-        value = chatListState.layoutInfo.viewportEndOffset.toFloat(),
+        value = height.toFloat(),
         animationSpec = tween(durationMillis = 800)
     )
-    if (chatListState.canScrollForward) {
-        chatListState.animateScrollToItem(Int.MAX_VALUE)
-    }
+//    if (chatListState.canScrollForward) {
+//        chatListState.animateScrollToItem(Int.MAX_VALUE)
+//    }
 }
 
 
@@ -275,7 +296,7 @@ private fun NewMsgContentView(
     textIsSelectable: Boolean = false,
     isMe: Boolean? = null,
     minWidth: Dp = MsgContentViewDefaultParam.minWidth,
-    maxWidth: Dp = MsgContentViewDefaultParam.maxWidth
+    maxWidth: Dp = MsgContentViewDefaultParam.maxWidth,
 ) {
     if (enableMarkDownText) {
         val ctx = LocalContext.current
@@ -301,6 +322,7 @@ private fun NewMsgContentView(
             if (type == MarkdownViewLinkType.WebLink) {
                 Toast.makeText(ctx, link, Toast.LENGTH_SHORT).show()
                 val intent = Intent()
+                    .setAction(Intent.ACTION_VIEW)
                 intent.data = Uri.parse(link)
                 ctx.startActivity(intent)
             }

@@ -16,6 +16,7 @@ import com.unfbx.chatgpt.entity.chat.BaseMessage
 import com.unfbx.chatgpt.entity.chat.ChatCompletion
 import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse
 import com.unfbx.chatgpt.entity.chat.Message
+import me.saket.bettermovementmethod.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -121,7 +122,9 @@ class OpenAiModel {
                         )
                         list.add(mData)
                         tempNewMsgText.value = null
-                        Log.d("OpenAiResponse", "onEvent: $mChatStrBuilder")
+                        if (BuildConfig.DEBUG) {
+                            Log.d("OpenAiResponse", "onEvent: $mChatStrBuilder")
+                        }
                         return
                     }
                     val responseData =
@@ -176,10 +179,14 @@ class OpenAiModel {
                         val build =
                             OkHttpClient.Builder().connectTimeout(200, TimeUnit.MILLISECONDS)
                                 .build()
-                        val responseTest = build.newCall(testBuilder).execute()
-                        if (responseTest.code == 204) {
-                            "连接超时，API配置存在问题，请检查配置"
-                        } else {
+                        try {
+                            val responseTest = build.newCall(testBuilder).execute()
+                            if (responseTest.code == 204) {
+                                "连接超时，API配置存在问题，请检查配置"
+                            } else {
+                                "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
+                            }
+                        } catch (e: Exception) {
                             "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
                         }
                     }
