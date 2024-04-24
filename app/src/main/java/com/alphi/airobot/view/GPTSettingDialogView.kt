@@ -38,7 +38,7 @@ import com.alphi.airobot.model.mChatContextMessages
 import com.alphi.airobot.model.mOpenApiList
 import com.alphi.airobot.model.mSelectApiIndex
 import com.alphi.airobot.model.preferences
-import com.alphi.airobot.model.refreshApiConfig
+import com.alphi.airobot.model.refreshApiConfigAndClient
 import com.unfbx.chatgpt.entity.chat.BaseChatCompletion
 
 
@@ -73,6 +73,7 @@ fun OpenModelSettingDialog(
                                         editor.putString("model", AiModel.getName())
                                         editor.apply()
                                         OpenAiModel.interruptAiResponse()
+                                        setTempNewMsgText(null)
                                     }
                                     mChatContextMessages.clear()
                                     msgDataList.clear()
@@ -119,7 +120,7 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
 
         val confirmListener = fun() {
             if (mOpenApiList.size > 0) {
-                refreshApiConfig()
+                refreshApiConfigAndClient()
                 OpenAiModel.refreshClient()
             }
             dismiss()
@@ -154,13 +155,13 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                                             // 选择事件
                                             mSelectApiIndex = index
                                             rememberAPiSelectIndex = index
-                                            refreshApiConfig()
+                                            OpenAiModel.interruptAiResponse()
+                                            refreshApiConfigAndClient()
+                                            setTempNewMsgText(null)
                                         },
                                         onLongClick = {
                                             // 修改事件
                                             updateIndex.value = index
-                                            dismiss()
-                                            setTempNewMsgText(null)
                                         },
                                         onDoubleClick = null
                                     )
@@ -202,16 +203,14 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
 
     }
 
-    ModifyApiDialog(updateIndex = updateIndex) {
-        dialogState.value = true
-    }
+    ModifyApiDialog(updateIndex = updateIndex)
 }
 
 
 @Composable
 fun ModifyApiDialog(
     updateIndex: MutableState<Int?>,
-    dismissListener: (() -> Unit)?
+    dismissListener: (() -> Unit)? = null
 ) {
     if (updateIndex.value != null) {
         val aiProperties = if (updateIndex.value != -1) mOpenApiList[updateIndex.value!!] else null

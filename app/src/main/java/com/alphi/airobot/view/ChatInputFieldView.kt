@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.alphi.airobot.entity.MsgData
 import com.alphi.airobot.model.OpenAiModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 
 
 @Composable
@@ -35,19 +37,19 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var inputText by remember { mutableStateOf("") }
-    // 发送事件
-    val onSendClick = fun() {
-        if (inputText.isBlank())
-            return
-        mSendButtonEnable = false
-        val data = MsgData(inputText, isMe = true, selectable = true)
-        list.add(data)
-        OpenAiModel.launchAiQuestion(inputText, closeListener = {
-            mSendButtonEnable = true
+    fun launchAiQuestion(text: String?) {
+        OpenAiModel.launchAiQuestion(text, closeListener = {
             it.selectable = true
-            if (it.isErr)
+            if (it.isErr) {
                 setTempNewMsgText(it.text, enableCloseDownIcon = false)
-            else {
+                runBlocking {
+                    delay(3000)     // 重发时间 ms
+                    if (!isEmptyTempNewMsgText()) {
+                        launchAiQuestion(null)
+                    }
+                }
+            } else {
+                mSendButtonEnable = true
                 list.add(it)
                 setTempNewMsgText(null)
             }
@@ -55,6 +57,15 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
             scrollBottomEvent(scope, needOnBottom = true)
             setTempNewMsgText(it)
         })
+    }
+    // 发送事件
+    val onSendClick = fun() {
+        if (inputText.isBlank())
+            return
+        mSendButtonEnable = false
+        val data = MsgData(inputText, isMe = true, selectable = true)
+        list.add(data)
+        launchAiQuestion(inputText)
         inputText = ""
         keyboardController?.hide()
         scrollBottomEvent(scope)

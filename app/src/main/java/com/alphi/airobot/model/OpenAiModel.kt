@@ -44,43 +44,40 @@ class OpenAiModel {
             private set
         private var currentEventSource: EventSource? = null
         fun initProperty(context: Context) {
-            if (mSelectApiIndex == -1) {
-                AdVanceNestCallback {
-                    preferences = context.getSharedPreferences("ai-property", Context.MODE_PRIVATE)
+            AdVanceNestCallback {
+                preferences = context.getSharedPreferences("ai-property", Context.MODE_PRIVATE)
 
-                    val model = preferences.getString("model", null)
-                    if (!model.isNullOrBlank()) {
-                        try {
-                            for (m in BaseChatCompletion.Model.values()) {
-                                if (m.getName() == model) {
-                                    AiModel = m
-                                    break
-                                }
+                val model = preferences.getString("model", null)
+                if (!model.isNullOrBlank()) {
+                    try {
+                        for (m in BaseChatCompletion.Model.values()) {
+                            if (m.getName() == model) {
+                                AiModel = m
+                                break
                             }
-                            AiModel = BaseChatCompletion.Model.valueOf(model)
-                        } catch (e: Exception) {
-                            Log.e("initProperty", "AiModel: load properties failure.", e)
                         }
+                        AiModel = BaseChatCompletion.Model.valueOf(model)
+                    } catch (e: Exception) {
+                        Log.e("initProperty", "AiModel: load properties failure.", e)
                     }
-
-                    dbHelper = ChatGptApiDBHelper(context)
-                    mOpenApiList.addAll(dbHelper.queryAll())
-
-                    mSelectApiIndex = preferences.getInt("selectApiIndex", 0)
-                    refreshApiConfig()
-
-                    Log.d("TAG", "initProperty: $mOpenApiList")
                 }
+
+                dbHelper = ChatGptApiDBHelper(context)
+                mOpenApiList.clear()
+                mOpenApiList.addAll(dbHelper.queryAll())
+
+                mSelectApiIndex = preferences.getInt("selectApiIndex", 0)
+                refreshApiConfig()
+
+                Log.d("TAG", "initProperty: $mOpenApiList")
             }
-            if (client == null) {
-                refreshClient()
-            }
+            refreshClient()
         }
 
         fun launchAiQuestion(
-            text: String,
+            text: String?,
             closeListener: (MsgData) -> Unit,
-            eventListener: ((String) -> Unit)? = null
+            eventListener: ((String) -> Unit)? = null,
         ) {
             if (client == null)
                 refreshClient()
@@ -163,7 +160,8 @@ class OpenAiModel {
                             mChatContextMessages.add(
                                 Message.builder().role(mAssistantModel)
                                     .content(mChatStrBuilder.toString())
-                                    .build())
+                                    .build()
+                            )
                             return      // 200状态码接受正常直接结束异常处理
                         }
                         val strBuilder = StringBuilder("ERR code: ${response.code}  \n")
@@ -194,9 +192,11 @@ class OpenAiModel {
                     Log.w("OpenAiResponse", resultBody, t)
                 }
             }
-            val message: Message =
-                Message.builder().role(BaseMessage.Role.USER).content(text).build()
-            mChatContextMessages.add(message)
+            if (text != null) {
+                val message: Message =
+                    Message.builder().role(BaseMessage.Role.USER).content(text).build()
+                mChatContextMessages.add(message)
+            }
             val chatCompletion =
                 ChatCompletion.builder().messages(mChatContextMessages).model(AiModel.getName())
                     .build()
@@ -237,9 +237,7 @@ class OpenAiModel {
 }
 
 
-
-
-fun refreshApiConfig() {
+private fun refreshApiConfig() {
     if (mOpenApiList.size > 0) {
         val openAiApi = mOpenApiList[mSelectApiIndex.coerceAtMost(mOpenApiList.size - 1)]
         currentKey = openAiApi.sk
@@ -248,6 +246,11 @@ fun refreshApiConfig() {
         currentKey = null
         currentApiHost = null
     }
+}
+
+fun refreshApiConfigAndClient() {
+    refreshApiConfig()
+    OpenAiModel.refreshClient()
 }
 
 

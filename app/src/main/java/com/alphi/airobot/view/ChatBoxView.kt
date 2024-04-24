@@ -100,21 +100,21 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     val scrollState = rememberScrollState()
     enableIconForCloseDownloadMessage = remember { mutableStateOf(false) }
     var chatOneClockText by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     if (mIsCreateClock) {
         mIsCreateClock = false
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.MILLISECOND, 0)
-        var date = calendar.time
-        chatOneClockText = "现在是北京时间：$date"
-        Timer().scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
-                date = Date()
-                scope.launch {
-                    chatOneClockText = "现在是北京时间：$date"
+        calendar.time.let {
+            chatOneClockText = "现在是北京时间：$it"
+            Timer().scheduleAtFixedRate(object : TimerTask() {
+                override fun run() {
+                    coroutineScope.launch {
+                        chatOneClockText = "现在是北京时间：${Date()}"
+                    }
                 }
-            }
-        }, date, 1000)
+            }, it, 1000)
+        }
 //        list.add(MsgData("![猫咪图片](https://cdn.pixabay.com/photo/2017/02/20/18/03/cat-2083492_1280.jpg)"))
     }
 
@@ -133,7 +133,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                     }
                 }
                 // 聊天列表     不建议forEach嵌套item，否则滑动会出现问题
-                itemsIndexed(list, contentType = {index, _ -> index}) { index, v ->
+                itemsIndexed(list, contentType = { index, _ -> index }) { index, v ->
                     val minWidth =
                         if (v.text.contains(Regex("\\|\\s-+?\\s\\|")) || isMarkDownImage(
                                 v.text,
@@ -161,7 +161,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                 }
                 // 新字节流消息
                 if (tempNewMsgText.value != null) {
-                    item (contentType = {list.size + 1}) {
+                    item(contentType = { list.size + 1 }) {
                         if (BuildConfig.DEBUG) {
                             Log.d("TAG-FuncView", "NewMsgView: item view ready Row")
                         }
@@ -232,7 +232,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
         }
         if (chatListState.canScrollForward) {
             IconButton(
-                onClick = { scrollBottomEvent(scope) },
+                onClick = { scrollBottomEvent(coroutineScope) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 8.dp)
@@ -342,6 +342,8 @@ private fun NewMsgContentView(
                 setLineSpacing(0f, 1.14f)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize.value)
             }
+        }, update = {
+            it.text = text
         }, modifier = Modifier
             .padding(marginValues)   // margin
             .drawWithCache {
@@ -403,4 +405,8 @@ private fun isMarkDownImage(text: String, onlyImage: Boolean = false): Boolean {
 fun setTempNewMsgText(text: String?, enableCloseDownIcon: Boolean = true) {
     tempNewMsgText.value = text
     enableIconForCloseDownloadMessage.value = enableCloseDownIcon
+}
+
+fun isEmptyTempNewMsgText(): Boolean {
+    return tempNewMsgText.value?.isEmpty() ?: true
 }
