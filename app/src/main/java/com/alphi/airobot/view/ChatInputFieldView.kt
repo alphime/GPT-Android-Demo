@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,9 +31,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 
+internal lateinit var mSendButtonEnable: MutableState<Boolean>
+
 @Composable
 fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
-    var mSendButtonEnable by remember { mutableStateOf(true) }
+    mSendButtonEnable = remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -44,14 +47,13 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                 setTempNewMsgText(it.text, enableCloseDownIcon = false)
                 runBlocking {
                     delay(3000)     // 重发时间 ms
-                    if (!isEmptyTempNewMsgText()) {
+                    if (!mSendButtonEnable.value) {
                         launchAiQuestion(null)
                     }
                 }
             } else {
-                mSendButtonEnable = true
+                hiddenTempNewMsgTextAndEnableSendBtn()
                 list.add(it)
-                setTempNewMsgText(null)
             }
         }, eventListener = {
             scrollBottomEvent(scope, needOnBottom = true)
@@ -62,7 +64,7 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     val onSendClick = fun() {
         if (inputText.isBlank())
             return
-        mSendButtonEnable = false
+        mSendButtonEnable.value = false
         val data = MsgData(inputText, isMe = true, selectable = true)
         list.add(data)
         launchAiQuestion(inputText)
@@ -122,7 +124,7 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                             .wrapContentWidth()
                             .height(50.dp)
                             .align(Alignment.CenterVertically),
-                        enabled = mSendButtonEnable
+                        enabled = mSendButtonEnable.value
                     ) {
                         Icon(Icons.AutoMirrored.Default.Send, contentDescription = "发送")
                     }

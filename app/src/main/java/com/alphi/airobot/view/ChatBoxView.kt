@@ -407,6 +407,11 @@ fun setTempNewMsgText(text: String?, enableCloseDownIcon: Boolean = true) {
     enableIconForCloseDownloadMessage.value = enableCloseDownIcon
 }
 
+fun hiddenTempNewMsgTextAndEnableSendBtn() {
+    setTempNewMsgText(null)
+    mSendButtonEnable.value = true
+}
+
 fun isEmptyTempNewMsgText(): Boolean {
     return tempNewMsgText.value?.isEmpty() ?: true
 }

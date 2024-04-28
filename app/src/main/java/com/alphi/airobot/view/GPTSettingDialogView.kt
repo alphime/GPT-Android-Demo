@@ -72,9 +72,9 @@ fun OpenModelSettingDialog(
                                         val editor = preferences.edit()
                                         editor.putString("model", AiModel.getName())
                                         editor.apply()
-                                        OpenAiModel.interruptAiResponse()
-                                        setTempNewMsgText(null)
                                     }
+                                    OpenAiModel.interruptAiResponse()
+                                    hiddenTempNewMsgTextAndEnableSendBtn()
                                     mChatContextMessages.clear()
                                     msgDataList.clear()
                                 }
@@ -157,7 +157,7 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                                             rememberAPiSelectIndex = index
                                             OpenAiModel.interruptAiResponse()
                                             refreshApiConfigAndClient()
-                                            setTempNewMsgText(null)
+//                                            setTempNewMsgText(null)
                                         },
                                         onLongClick = {
                                             // 修改事件

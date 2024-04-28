@@ -43,6 +43,7 @@ class OpenAiModel {
         var client: OpenAiStreamClient? = null
             private set
         private var currentEventSource: EventSource? = null
+        private var isCancel: Boolean = false
         fun initProperty(context: Context) {
             AdVanceNestCallback {
                 preferences = context.getSharedPreferences("ai-property", Context.MODE_PRIVATE)
@@ -90,6 +91,7 @@ class OpenAiModel {
 
             //聊天模型：gpt-3.5
             //聊天模型：gpt-3.5
+            isCancel = false
             val eventSourceListener = object : EventSourceListener() {
                 private lateinit var mData: MsgData
                 private var isDoneSuccess = false
@@ -162,6 +164,7 @@ class OpenAiModel {
                                     .content(mChatStrBuilder.toString())
                                     .build()
                             )
+                            Log.w("OpenAiResponse", "onFailure: ", t)
                             return      // 200状态码接受正常直接结束异常处理
                         }
                         val strBuilder = StringBuilder("ERR code: ${response.code}  \n")
@@ -187,9 +190,11 @@ class OpenAiModel {
                             "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
                         }
                     }
+                    if (isCancel)
+                        return
                     mData = MsgData(content, isMe = false, isErr = true)
                     closeListener(mData)
-                    Log.w("OpenAiResponse", resultBody, t)
+                    Log.e("OpenAiResponse", resultBody, t)
                 }
             }
             if (text != null) {
@@ -206,6 +211,7 @@ class OpenAiModel {
 
         fun interruptAiResponse() {
             currentEventSource?.cancel()
+            isCancel = true
         }
 
 
