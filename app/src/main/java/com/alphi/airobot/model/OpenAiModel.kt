@@ -157,6 +157,7 @@ class OpenAiModel {
                     val content = if (response != null) {
                         if (response.code == 200) {
                             if (mChatAiMessageContentBuilder.isEmpty()) {    // 正常是不可能的内容体为空，此时应该重发
+                                Thread.sleep(800)
                                 launchAiQuestion(null, closeListener, eventListener)
                                 return
                             }
