@@ -95,8 +95,8 @@ class OpenAiModel {
             val eventSourceListener = object : EventSourceListener() {
                 private lateinit var mData: MsgData
                 private var isDoneSuccess = false
-                private val mChatStrBuilder = StringBuilder()
-                private var mAssistantModel: BaseMessage.Role? = null
+                private val mChatAiMessageContentBuilder = StringBuilder()
+                private var mAiRoleStr: String? = null
                 override fun onOpen(eventSource: EventSource, response: Response) {
                     currentEventSource = eventSource
                 }
@@ -109,41 +109,40 @@ class OpenAiModel {
                 ) {
                     if (data == "[DONE]") {
                         isDoneSuccess = true
-                        mData = MsgData(mChatStrBuilder.toString(), isMe = false)
+                        mData = MsgData(mChatAiMessageContentBuilder.toString(), isMe = false)
                         closeListener(mData)
                         mChatContextMessages.add(
-                            Message.builder().role(mAssistantModel)
-                                .content(mChatStrBuilder.toString())
+                            Message.builder().role(mAiRoleStr)
+                                .content(mChatAiMessageContentBuilder.toString())
                                 .build()
                         )
                         if (BuildConfig.DEBUG) {
-                            Log.d("OpenAiResponse", "onEvent: $mChatStrBuilder")
+                            Log.d("OpenAiResponse", "onEvent: $mChatAiMessageContentBuilder")
                         }
                         return
                     }
                     val responseData =
                         JSONObject.parseObject(data, ChatCompletionResponse::class.java)
-                    if (mAssistantModel == null) {
-                        mAssistantModel = BaseMessage.Role.values()
-                            .find { responseData.choices[0].delta.role == it.getName() }
+                    if (mAiRoleStr == null) {
+                        mAiRoleStr = responseData.choices[0].delta.role
                     }
                     val content: String = responseData.choices.joinToString {
                         it.delta.content ?: ""
                     }
-                    mChatStrBuilder.append(content)
+                    mChatAiMessageContentBuilder.append(content)
 
                     if (eventListener != null) {
-                        eventListener(mChatStrBuilder.toString())
+                        eventListener(mChatAiMessageContentBuilder.toString())
                     }
                 }
 
                 override fun onClosed(eventSource: EventSource) {
                     if (!isDoneSuccess) {
-                        mData = MsgData(mChatStrBuilder.toString(), isMe = false)
+                        mData = MsgData(mChatAiMessageContentBuilder.toString(), isMe = false)
                         closeListener(mData)
                         mChatContextMessages.add(
-                            Message.builder().role(mAssistantModel)
-                                .content(mChatStrBuilder.toString())
+                            Message.builder().role(mAiRoleStr)
+                                .content(mChatAiMessageContentBuilder.toString())
                                 .build()
                         )
                     }
@@ -157,11 +156,15 @@ class OpenAiModel {
                     var resultBody: String? = null
                     val content = if (response != null) {
                         if (response.code == 200) {
-                            mData = MsgData("$mChatStrBuilder\t\t /End", isMe = false)
+                            if (mChatAiMessageContentBuilder.isEmpty()) {    // 正常是不可能的内容体为空，此时应该重发
+                                launchAiQuestion(null, closeListener, eventListener)
+                                return
+                            }
+                            mData = MsgData("$mChatAiMessageContentBuilder\t\t /End", isMe = false)
                             closeListener(mData)
                             mChatContextMessages.add(
-                                Message.builder().role(mAssistantModel)
-                                    .content(mChatStrBuilder.toString())
+                                Message.builder().role(mAiRoleStr)
+                                    .content(mChatAiMessageContentBuilder.toString())
                                     .build()
                             )
                             Log.w("OpenAiResponse", "onFailure: ", t)
