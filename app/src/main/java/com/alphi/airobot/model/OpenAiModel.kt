@@ -15,6 +15,8 @@ import com.unfbx.chatgpt.entity.chat.BaseMessage
 import com.unfbx.chatgpt.entity.chat.ChatCompletion
 import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse
 import com.unfbx.chatgpt.entity.chat.Message
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import me.saket.bettermovementmethod.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -153,52 +155,61 @@ class OpenAiModel {
                     t: Throwable?,
                     response: Response?
                 ) {
-                    var resultBody: String? = null
-                    val content = if (response != null) {
-                        if (response.code == 200) {
-                            if (mChatAiMessageContentBuilder.isEmpty()) {    // 正常是不可能的内容体为空，此时应该重发
-                                Thread.sleep(800)
-                                launchAiQuestion(null, closeListener, eventListener)
-                                return
+                    try {
+                        var resultBody: String? = null
+                        val content = if (response != null) {
+                            if (response.code == 200) {
+                                if (mChatAiMessageContentBuilder.isEmpty() && !isCancel) {
+                                    runBlocking {
+                                        delay(1200)
+                                        // 正常是不可能的内容体为空，此时应该重发
+                                        if (mChatAiMessageContentBuilder.isEmpty()) {
+                                            launchAiQuestion(null, closeListener, eventListener)
+                                        }
+                                    }
+                                    return
+                                }
+                                mData = MsgData("$mChatAiMessageContentBuilder\t\t /End", isMe = false)
+                                closeListener(mData)
+                                mChatContextMessages.add(
+                                    Message.builder().role(mAiRoleStr)
+                                        .content(mChatAiMessageContentBuilder.toString())
+                                        .build()
+                                )
+                                Log.w("OpenAiResponse", "onFailure: ", t)
+                                return      // 200状态码接受正常直接结束异常处理
                             }
-                            mData = MsgData("$mChatAiMessageContentBuilder\t\t /End", isMe = false)
-                            closeListener(mData)
-                            mChatContextMessages.add(
-                                Message.builder().role(mAiRoleStr)
-                                    .content(mChatAiMessageContentBuilder.toString())
+                            val strBuilder = StringBuilder("ERR code: ${response.code}  \n")
+                            strBuilder.append(errCodeToString(response.code))
+                            strBuilder.append("  \n--------------------------  \n")
+                            resultBody = response.body?.string()
+                            strBuilder.append(resultBody)
+                            strBuilder.toString()
+                        } else {
+                            val testBuilder =
+                                Request.Builder().url("https://www.google.cn/generate_204").build()
+                            val build =
+                                OkHttpClient.Builder().connectTimeout(200, TimeUnit.MILLISECONDS)
                                     .build()
-                            )
-                            Log.w("OpenAiResponse", "onFailure: ", t)
-                            return      // 200状态码接受正常直接结束异常处理
-                        }
-                        val strBuilder = StringBuilder("ERR code: ${response.code}  \n")
-                        strBuilder.append(errCodeToString(response.code))
-                        strBuilder.append("  \n--------------------------  \n")
-                        resultBody = response.body?.string()
-                        strBuilder.append(resultBody)
-                        strBuilder.toString()
-                    } else {
-                        val testBuilder =
-                            Request.Builder().url("https://www.google.cn/generate_204").build()
-                        val build =
-                            OkHttpClient.Builder().connectTimeout(200, TimeUnit.MILLISECONDS)
-                                .build()
-                        try {
-                            val responseTest = build.newCall(testBuilder).execute()
-                            if (responseTest.code == 204) {
-                                "连接超时，API配置存在问题，请检查配置"
-                            } else {
+                            try {
+                                val responseTest = build.newCall(testBuilder).execute()
+                                if (responseTest.code == 204) {
+                                    "连接超时，API配置存在问题，请检查配置"
+                                } else {
+                                    "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
+                                }
+                            } catch (e: Exception) {
                                 "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
                             }
-                        } catch (e: Exception) {
-                            "存在网络问题，请您检查网络！  \n--------------------------  \nnet::ERR_INTERNET_DISCONNECTED"
                         }
+                        if (isCancel)
+                            return
+                        mData = MsgData(content, isMe = false, isErr = true)
+                        closeListener(mData)
+                        Log.e("OpenAiResponse", resultBody, t)
+                    } finally {
+                        eventSource.cancel()
                     }
-                    if (isCancel)
-                        return
-                    mData = MsgData(content, isMe = false, isErr = true)
-                    closeListener(mData)
-                    Log.e("OpenAiResponse", resultBody, t)
                 }
             }
             if (text != null) {
