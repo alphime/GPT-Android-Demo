@@ -6,7 +6,9 @@ import android.util.Log
 import android.util.TypedValue
 import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -228,18 +230,25 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                                         visible = true
                                     }
                                 }
-                            } else if (mExtendIconButtonType.value == ICONBTN_TYPE_RESEND){
+                            } else if (mExtendIconButtonType.value == ICONBTN_TYPE_RESEND) {
                                 var rotatingResend by remember { mutableStateOf(false) }
                                 val rotation by animateFloatAsState(
                                     targetValue = if (rotatingResend) 360f else 0f,
-                                    animationSpec = tween(durationMillis = if (rotatingResend) 600 else 0),
+                                    animationSpec = infiniteRepeatable(
+                                        tween(durationMillis = if (rotatingResend) 600 else 0),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
                                     label = "重发中"
                                 )
                                 IconButton(
                                     onClick = {
                                         if (!rotatingResend) {
-                                            OpenAiLauncher.launchAiQuestion(list, null, coroutineScope,
-                                                closeListener = { rotatingResend = false })
+                                            OpenAiLauncher.launchAiQuestion(list,
+                                                null,
+                                                coroutineScope,
+                                                closeListener = {
+                                                    coroutineScope.launch { rotatingResend = false }
+                                                })
                                             rotatingResend = true
                                         }
                                     },
