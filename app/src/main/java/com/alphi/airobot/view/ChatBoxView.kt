@@ -6,6 +6,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -28,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -35,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -60,6 +64,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.alphi.airobot.compose.MarkdownView
 import com.alphi.airobot.compose.MarkdownViewLinkType
 import com.alphi.airobot.entity.MsgData
+import com.alphi.airobot.model.OpenAiLauncher
 import com.alphi.airobot.model.OpenAiModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -86,7 +91,9 @@ class ChatBoxView {
 private var mIsCreateClock = false
 private lateinit var chatListState: LazyListState
 private lateinit var tempNewMsgText: MutableState<String?>
-private lateinit var enableIconForCloseDownloadMessage: MutableState<Boolean>
+private lateinit var mExtendIconButtonType: MutableState<Int>
+internal const val ICONBTN_TYPE_ENABLE_STOP_RECEIVE = 1
+internal const val ICONBTN_TYPE_RESEND = 2
 
 // [0]: 接受信息字节流视图高度；[1]: 时间视图高度；[2+]: 历史消息列表单项视图高度；
 // 设计思路：当读取开始至到第一次出现Null的前一个为止
@@ -98,7 +105,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     chatListState = rememberLazyListState()
     tempNewMsgText = remember { mutableStateOf(null) }
     val scrollState = rememberScrollState()
-    enableIconForCloseDownloadMessage = remember { mutableStateOf(false) }
+    mExtendIconButtonType = remember { mutableIntStateOf(0) }
     var chatOneClockText by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     if (mIsCreateClock) {
@@ -188,7 +195,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                                 enableMarkDownText = true,
                                 isMe = false
                             )
-                            if (enableIconForCloseDownloadMessage.value) {
+                            if (mExtendIconButtonType.value == ICONBTN_TYPE_ENABLE_STOP_RECEIVE) {
                                 // 取消接受消息图标
                                 var visible by remember { mutableStateOf(false) }
                                 if (visible) {
@@ -220,6 +227,40 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                                         delay(2000)
                                         visible = true
                                     }
+                                }
+                            } else if (mExtendIconButtonType.value == ICONBTN_TYPE_RESEND){
+                                var rotatingResend by remember { mutableStateOf(false) }
+                                val rotation by animateFloatAsState(
+                                    targetValue = if (rotatingResend) 360f else 0f,
+                                    animationSpec = tween(durationMillis = if (rotatingResend) 600 else 0),
+                                    label = "重发中"
+                                )
+                                IconButton(
+                                    onClick = {
+                                        if (!rotatingResend) {
+                                            OpenAiLauncher.launchAiQuestion(list, null, coroutineScope,
+                                                closeListener = { rotatingResend = false })
+                                            rotatingResend = true
+                                        }
+                                    },
+                                    Modifier
+                                        .padding(top = 12.dp)
+                                        .background(
+                                            shape = CircleShape,
+                                            color = Color(0x33A3A3A3),
+                                        )
+                                        .size(30.dp)
+                                        .rotate(rotation)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = "重发",
+                                        Modifier.size(20.dp),
+                                        tint = Color(
+                                            if (!isSystemInDarkTheme()) 0x66333333
+                                            else 0xAAAAAAAA
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -402,16 +443,16 @@ private fun isMarkDownImage(text: String, onlyImage: Boolean = false): Boolean {
     }
 }
 
-fun setTempNewMsgText(text: String?, enableCloseDownIcon: Boolean = true) {
+internal fun setTempNewMsgText(text: String?, extendIconButton: Int = 0) {
     tempNewMsgText.value = text
-    enableIconForCloseDownloadMessage.value = enableCloseDownIcon
+    mExtendIconButtonType.value = extendIconButton
 }
 
-fun hiddenTempNewMsgTextAndEnableSendBtn() {
+internal fun hiddenTempNewMsgTextAndEnableSendBtn() {
     setTempNewMsgText(null)
     mSendButtonEnable.value = true
 }
 
-fun isEmptyTempNewMsgText(): Boolean {
+internal fun isEmptyTempNewMsgText(): Boolean {
     return tempNewMsgText.value?.isEmpty() ?: true
 }

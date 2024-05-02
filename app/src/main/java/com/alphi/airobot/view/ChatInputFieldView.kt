@@ -26,9 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.alphi.airobot.entity.MsgData
-import com.alphi.airobot.model.OpenAiModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import com.alphi.airobot.model.OpenAiLauncher
 
 
 internal lateinit var mSendButtonEnable: MutableState<Boolean>
@@ -40,26 +38,7 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var inputText by remember { mutableStateOf("") }
-    fun launchAiQuestion(text: String?) {
-        OpenAiModel.launchAiQuestion(text, closeListener = {
-            it.selectable = true
-            if (it.isErr) {
-                setTempNewMsgText(it.text, enableCloseDownIcon = false)
-                runBlocking {
-                    delay(3000)     // 重发时间 ms
-                    if (!mSendButtonEnable.value) {
-                        launchAiQuestion(null)
-                    }
-                }
-            } else {
-                hiddenTempNewMsgTextAndEnableSendBtn()
-                list.add(it)
-            }
-        }, eventListener = {
-            scrollBottomEvent(scope, needOnBottom = true)
-            setTempNewMsgText(it)
-        })
-    }
+
     // 发送事件
     val onSendClick = fun() {
         if (inputText.isBlank())
@@ -67,7 +46,7 @@ fun InitInputView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
         mSendButtonEnable.value = false
         val data = MsgData(inputText, isMe = true, selectable = true)
         list.add(data)
-        launchAiQuestion(inputText)
+        OpenAiLauncher.launchAiQuestion(list, inputText, scope)
         inputText = ""
         keyboardController?.hide()
         scrollBottomEvent(scope)

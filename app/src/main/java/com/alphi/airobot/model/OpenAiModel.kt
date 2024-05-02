@@ -12,11 +12,10 @@ import com.alphi.airobot.utils.AdVanceNestCallback
 import com.unfbx.chatgpt.OpenAiStreamClient
 import com.unfbx.chatgpt.entity.chat.BaseChatCompletion
 import com.unfbx.chatgpt.entity.chat.BaseMessage
+import com.unfbx.chatgpt.entity.chat.BaseMessage.Role
 import com.unfbx.chatgpt.entity.chat.ChatCompletion
 import com.unfbx.chatgpt.entity.chat.ChatCompletionResponse
 import com.unfbx.chatgpt.entity.chat.Message
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import me.saket.bettermovementmethod.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -59,7 +58,6 @@ class OpenAiModel {
                                 break
                             }
                         }
-                        AiModel = BaseChatCompletion.Model.valueOf(model)
                     } catch (e: Exception) {
                         Log.e("initProperty", "AiModel: load properties failure.", e)
                     }
@@ -79,7 +77,7 @@ class OpenAiModel {
 
         fun launchAiQuestion(
             text: String?,
-            closeListener: (MsgData) -> Unit,
+            closeListener: ((MsgData) -> Unit)? = null,
             eventListener: ((String) -> Unit)? = null,
         ) {
             if (client == null)
@@ -87,7 +85,7 @@ class OpenAiModel {
 
             if (client == null) {
                 val mData = MsgData("注意：使用GPT前，需设置API才能使用！", isMe = false, isErr = true)
-                closeListener(mData)
+                closeListener?.invoke(mData)
                 return
             }
 
@@ -112,9 +110,9 @@ class OpenAiModel {
                     if (data == "[DONE]") {
                         isDoneSuccess = true
                         mData = MsgData(mChatAiMessageContentBuilder.toString(), isMe = false)
-                        closeListener(mData)
+                        closeListener?.invoke(mData)
                         mChatContextMessages.add(
-                            Message.builder().role(mAiRoleStr)
+                            Message.builder().role(mAiRoleStr ?: Role.ASSISTANT.getName())
                                 .content(mChatAiMessageContentBuilder.toString())
                                 .build()
                         )
@@ -125,23 +123,21 @@ class OpenAiModel {
                     }
                     val responseData =
                         JSONObject.parseObject(data, ChatCompletionResponse::class.java)
-                    if (mAiRoleStr == null) {
-                        mAiRoleStr = responseData.choices[0].delta.role
-                    }
                     val content: String = responseData.choices.joinToString {
+                        if (mAiRoleStr == null) {
+                            mAiRoleStr = it.delta.role
+                        }
                         it.delta.content ?: ""
                     }
                     mChatAiMessageContentBuilder.append(content)
 
-                    if (eventListener != null) {
-                        eventListener(mChatAiMessageContentBuilder.toString())
-                    }
+                    eventListener?.invoke(mChatAiMessageContentBuilder.toString())
                 }
 
                 override fun onClosed(eventSource: EventSource) {
                     if (!isDoneSuccess) {
                         mData = MsgData(mChatAiMessageContentBuilder.toString(), isMe = false)
-                        closeListener(mData)
+                        closeListener?.invoke(mData)
                         mChatContextMessages.add(
                             Message.builder().role(mAiRoleStr)
                                 .content(mChatAiMessageContentBuilder.toString())
@@ -159,25 +155,17 @@ class OpenAiModel {
                         var resultBody: String? = null
                         val content = if (response != null) {
                             if (response.code == 200) {
-                                if (mChatAiMessageContentBuilder.isEmpty() && !isCancel) {
-                                    runBlocking {
-                                        delay(1200)
-                                        // 正常是不可能的内容体为空，此时应该重发
-                                        if (mChatAiMessageContentBuilder.isEmpty()) {
-                                            launchAiQuestion(null, closeListener, eventListener)
-                                        }
-                                    }
-                                    return
+                                if (isCancel || mChatAiMessageContentBuilder.isNotEmpty()) {
+                                    mData = MsgData("$mChatAiMessageContentBuilder\t\t /End", isMe = false)
+                                    closeListener?.invoke(mData)
+                                    mChatContextMessages.add(
+                                        Message.builder().role(mAiRoleStr ?: Role.ASSISTANT.getName())
+                                            .content(mChatAiMessageContentBuilder.toString())
+                                            .build()
+                                    )
                                 }
-                                mData = MsgData("$mChatAiMessageContentBuilder\t\t /End", isMe = false)
-                                closeListener(mData)
-                                mChatContextMessages.add(
-                                    Message.builder().role(mAiRoleStr)
-                                        .content(mChatAiMessageContentBuilder.toString())
-                                        .build()
-                                )
-                                Log.w("OpenAiResponse", "onFailure: ", t)
-                                return      // 200状态码接受正常直接结束异常处理
+                                Log.w("OpenAiResponse", "onFailure: ", t)      // 200状态码接受正常直接结束异常处理
+                                return
                             }
                             val strBuilder = StringBuilder("ERR code: ${response.code}  \n")
                             strBuilder.append(errCodeToString(response.code))
@@ -205,7 +193,7 @@ class OpenAiModel {
                         if (isCancel)
                             return
                         mData = MsgData(content, isMe = false, isErr = true)
-                        closeListener(mData)
+                        closeListener?.invoke(mData)
                         Log.e("OpenAiResponse", resultBody, t)
                     } finally {
                         eventSource.cancel()
@@ -217,6 +205,7 @@ class OpenAiModel {
                     Message.builder().role(BaseMessage.Role.USER).content(text).build()
                 mChatContextMessages.add(message)
             }
+            println(mChatContextMessages.map { it.role })
             val chatCompletion =
                 ChatCompletion.builder().messages(mChatContextMessages).model(AiModel.getName())
                     .build()
