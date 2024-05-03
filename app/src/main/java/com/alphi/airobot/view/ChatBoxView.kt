@@ -6,8 +6,8 @@ import android.util.Log
 import android.util.TypedValue
 import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -232,14 +232,23 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                                 }
                             } else if (mExtendIconButtonType.value == ICONBTN_TYPE_RESEND) {
                                 var rotatingResend by remember { mutableStateOf(false) }
-                                val rotation by animateFloatAsState(
-                                    targetValue = if (rotatingResend) 360f else 0f,
-                                    animationSpec = infiniteRepeatable(
-                                        tween(durationMillis = if (rotatingResend) 600 else 0),
-                                        repeatMode = RepeatMode.Restart
-                                    ),
-                                    label = "重发中"
-                                )
+                                val rotation =  remember {
+                                    Animatable(0f)
+                                }
+                                LaunchedEffect(rotatingResend) {
+                                    if (rotatingResend) {
+                                        rotation.animateTo(
+                                            targetValue = 360f,
+                                            animationSpec = infiniteRepeatable(
+                                                tween(durationMillis = 600),
+                                                repeatMode = RepeatMode.Restart
+                                            )
+                                        )
+                                    } else {
+                                        rotation.stop()
+                                        rotation.snapTo(0f)
+                                    }
+                                }
                                 IconButton(
                                     onClick = {
                                         if (!rotatingResend) {
@@ -259,7 +268,7 @@ fun InitChatBoxView(list: MutableList<MsgData>, modifier: Modifier = Modifier) {
                                             color = Color(0x33A3A3A3),
                                         )
                                         .size(30.dp)
-                                        .rotate(rotation)
+                                        .rotate(rotation.value)
                                 ) {
                                     Icon(
                                         Icons.Default.Refresh,
