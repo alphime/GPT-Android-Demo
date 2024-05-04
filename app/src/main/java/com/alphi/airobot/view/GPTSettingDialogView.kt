@@ -155,7 +155,7 @@ fun OpenSettingsDialog(dialogState: MutableState<Boolean>) {
                                             // 选择事件
                                             mSelectApiIndex = index
                                             rememberAPiSelectIndex = index
-                                            OpenAiModel.interruptAiResponse()
+//                                            OpenAiModel.interruptAiResponse()
                                             refreshApiConfigAndClient()
 //                                            setTempNewMsgText(null)
                                         },
