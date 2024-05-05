@@ -77,6 +77,7 @@ fun OpenModelSettingDialog(
                                     hiddenTempNewMsgTextAndEnableSendBtn()
                                     mChatContextMessages.clear()
                                     msgDataList.clear()
+                                    dismiss()
                                 }
                             )
                             .padding(vertical = 10.dp)
