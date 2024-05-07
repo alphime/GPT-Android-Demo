@@ -71,14 +71,17 @@ class MainActivity : ComponentActivity() {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(
-                            // 适配enableEdgeToEdge()的安卓导航栏及状态栏
-                            bottom = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
-                        ),
+                        .fillMaxSize(),
                     color = colorScheme.background
                 ) {
-                    FuncView()
+                    Surface(
+                        // 适配enableEdgeToEdge()的安卓导航栏及状态栏
+                        Modifier.padding(
+                            bottom = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
+                        )
+                    ) {
+                        FuncView()
+                    }
                 }
             }
         }
